@@ -9,7 +9,7 @@ namespace ClientForm
 {
     public partial class ConnectForm : Form
     {
-
+        
         private string _ip;
         private int _port;
 
@@ -40,7 +40,7 @@ namespace ClientForm
         }
         private void checkButton_Click(object sender, EventArgs e)
         {
-            label2.Text = "Статус: Проверка";
+            /*label2.Text = "Статус: Проверка";
             checkButton.Enabled = false;
             this._ip = IPBox.Text;
             Int32.TryParse(PortBox.Text, out _port);
@@ -76,7 +76,16 @@ namespace ClientForm
             finally
             {
                 checkButton.Enabled = true;
-            }
+            }*/
+            //IPHostEntry hostEntry = Dns.GetHostEntry(Dns.GetHostName());
+            //IPEndPoint endPoint = new IPEndPoint(hostEntry.AddressList[0], 11000);
+
+            Socket s = new Socket(AddressFamily.InterNetwork,SocketType.Dgram,ProtocolType.Udp);
+            s.EnableBroadcast = true;
+            byte[] msg = System.Text.Encoding.ASCII.GetBytes("This is a test\0");
+            // This call blocks.
+            s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Broadcast,1111));
+            s.Close();
 
         }
 

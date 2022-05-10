@@ -183,7 +183,9 @@ int main()
 	if (iResult == SOCKET_ERROR) {
 		wprintf(L"recvfrom failed with error %d\n", WSAGetLastError());
 	}
-	std::cout << inet_ntoa(SenderAddr.sin_addr);
+	std::cout << inet_ntoa(SenderAddr.sin_addr)<<" sending massage\n";
+	char massage[] = "hey you!";
+	sendto(RecvSocket, (char*)massage, sizeof(massage),0, (SOCKADDR*)&SenderAddr, SenderAddrSize);
 	//-----------------------------------------------
 	// Close the socket when finished receiving datagrams
 	wprintf(L"Finished receiving. Closing socket.\n");

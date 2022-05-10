@@ -79,12 +79,15 @@ namespace ClientForm
             }*/
             //IPHostEntry hostEntry = Dns.GetHostEntry(Dns.GetHostName());
             //IPEndPoint endPoint = new IPEndPoint(hostEntry.AddressList[0], 11000);
-
+            IPEndPoint ssender = new IPEndPoint(IPAddress.Any, 0);
+            EndPoint senderRemote = (EndPoint)ssender;
             Socket s = new Socket(AddressFamily.InterNetwork,SocketType.Dgram,ProtocolType.Udp);
             s.EnableBroadcast = true;
             byte[] msg = System.Text.Encoding.ASCII.GetBytes("This is a test\0");
             // This call blocks.
             s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Broadcast,1111));
+            s.ReceiveFrom(msg,msg.Length, SocketFlags.None,ref senderRemote);
+            nicname.Text = System.Text.Encoding.UTF8.GetString(msg, 0, msg.Length);
             s.Close();
 
         }

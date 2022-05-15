@@ -10,7 +10,7 @@ namespace ClientForm
 {
     public partial class ConnectForm : Form
     {
-        
+
         private string _ip;
         private int _port;
 
@@ -81,19 +81,19 @@ namespace ClientForm
             finally
             {
                 checkButton.Enabled = true;
-            }        
+            }
         }
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            
+
         }
 
-        private void searchButton_Click(object sender, EventArgs e)
+        private async void searchButton_Click(object sender, EventArgs e)
         {
             label2.Text = "Статус: Поиск серверов";
             try
-            {               
+            {
                 searchButton.Enabled = false;
 
                 IPEndPoint ssender = new IPEndPoint(IPAddress.Any, 0);
@@ -105,22 +105,29 @@ namespace ClientForm
                 // This call blocks.
                 s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Broadcast, 1111));
                 var sw = new Stopwatch();
-                var task = Task.Run(() => s.ReceiveFrom(msg, msg.Length, SocketFlags.None, ref senderRemote));
-                int checkBuf = 0;
-                sw.Start();
-                while (sw.ElapsedMilliseconds < 3000)
+                var task = Task.Run(() =>
                 {
-                    if (task.Wait(TimeSpan.FromSeconds(3)) && checkBuf != task.Result)
+
                     {
-                        //comboBox1.Items.Add(System.Text.Encoding.UTF8.GetString(msg, 0, msg.Length));
-                        comboBox1.Items.Add(senderRemote);
-                        checkBuf = task.Result;
-                    }                               
-                    else
-                        continue;
-                }
-                sw.Stop();
-                checkBuf = 0;
+                        while (true)
+                        {
+                            s.ReceiveFrom(msg, msg.Length, SocketFlags.None, ref senderRemote);
+                            comboBox1.Items.Add(senderRemote);
+                        }
+                    }
+                });
+                //ОТМЕНИ ТАСКУ!!!
+                
+                int checkBuf = 0;
+
+               /* if (task.Wait(TimeSpan.FromSeconds(3)) && checkBuf != task.Result)
+                {
+                    //comboBox1.Items.Add(System.Text.Encoding.UTF8.GetString(msg, 0, msg.Length));
+                    
+                }*/
+                
+                /*checkBuf = task;
+                checkBuf = 0;*/
             }
             catch (TimeoutException)
             {

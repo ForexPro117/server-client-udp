@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,11 +39,15 @@ namespace ClientForm
                 return null;
             }
         }
+
         private void checkButton_Click(object sender, EventArgs e)
         {
-            /*label2.Text = "Статус: Проверка";
-            checkButton.Enabled = false;
-            this._ip = IPBox.Text;
+            string selectedItem = comboBox1.SelectedItem.ToString();
+            string ip = selectedItem.Substring(0, selectedItem.Length - 5);
+            this._ip = ip;
+            this._port = 1111;
+            //s.Close();
+
             Int32.TryParse(PortBox.Text, out _port);
             try
             {
@@ -76,21 +81,55 @@ namespace ClientForm
             finally
             {
                 checkButton.Enabled = true;
-            }*/
-            //IPHostEntry hostEntry = Dns.GetHostEntry(Dns.GetHostName());
-            //IPEndPoint endPoint = new IPEndPoint(hostEntry.AddressList[0], 11000);
-            IPEndPoint ssender = new IPEndPoint(IPAddress.Any, 0);
-            EndPoint senderRemote = (EndPoint)ssender;
-            Socket s = new Socket(AddressFamily.InterNetwork,SocketType.Dgram,ProtocolType.Udp);
-            s.EnableBroadcast = true;
-            byte[] msg = System.Text.Encoding.ASCII.GetBytes("This is a test\0");
-            // This call blocks.
-            s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Broadcast,1111));
-            s.ReceiveFrom(msg,msg.Length, SocketFlags.None,ref senderRemote);
-            nicname.Text = System.Text.Encoding.UTF8.GetString(msg, 0, msg.Length);
-            s.Close();
-
+            }        
         }
 
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void searchButton_Click(object sender, EventArgs e)
+        {
+            label2.Text = "Статус: Поиск серверов";
+            try
+            {               
+                searchButton.Enabled = false;
+
+                IPEndPoint ssender = new IPEndPoint(IPAddress.Any, 0);
+                EndPoint senderRemote = (EndPoint)ssender;
+                Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                s.EnableBroadcast = true;
+                byte[] msg = System.Text.Encoding.ASCII.GetBytes("This is a test\0");
+
+                // This call blocks.
+                s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Broadcast, 1111));
+                var sw = new Stopwatch();
+                var task = Task.Run(() => s.ReceiveFrom(msg, msg.Length, SocketFlags.None, ref senderRemote));
+                int checkBuf = 0;
+                sw.Start();
+                while (sw.ElapsedMilliseconds < 3000)
+                {
+                    if (task.Wait(TimeSpan.FromSeconds(3)) && checkBuf != task.Result)
+                    {
+                        //comboBox1.Items.Add(System.Text.Encoding.UTF8.GetString(msg, 0, msg.Length));
+                        comboBox1.Items.Add(senderRemote);
+                        checkBuf = task.Result;
+                    }                               
+                    else
+                        continue;
+                }
+                sw.Stop();
+                checkBuf = 0;
+            }
+            catch (TimeoutException)
+            {
+                label2.Text = "Статус: Timeout";
+            }
+            finally
+            {
+                searchButton.Enabled = true;
+            }
+        }
     }
 }

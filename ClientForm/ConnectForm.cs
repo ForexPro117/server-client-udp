@@ -91,6 +91,7 @@ namespace ClientForm
 
         private async void searchButton_Click(object sender, EventArgs e)
         {
+            comboBox1.Items.Clear();
             label2.Text = "Статус: Поиск серверов";
             try
             {
@@ -115,7 +116,7 @@ namespace ClientForm
                             comboBox1.Items.Add(senderRemote);
                         }
                     }
-                });
+                } );
                 //ОТМЕНИ ТАСКУ!!!
                 
                 int checkBuf = 0;

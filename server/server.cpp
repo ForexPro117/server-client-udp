@@ -100,7 +100,15 @@ int main()
 		wprintf(L"socket failed with error %d\n", WSAGetLastError());
 		return 1;
 	}
+	int broadcast = 1;
 
+
+	/*if ((setsockopt(recvSocket, SOL_SOCKET, SO_BROADCAST,
+		(char*)&broadcast, sizeof broadcast)) == -1)
+	{
+		perror("setsockopt - SO_SOCKET ");
+		exit(1);
+	}*/
 
 	int receivedMsg = bind(recvSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress));
 	if (receivedMsg != 0) {

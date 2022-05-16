@@ -73,7 +73,7 @@ void UDPReceiver() {
 		}
 		// Отправка клиента в индивидуальный поток
 		else {
-			sendto(recvSocket, msg, sizeof(msg), 0, (SOCKADDR*)&clientAddr, clientAddrSize);
+			sendto(recvSocket, (char*)&playersLeftBuf, sizeof(int), 0, (SOCKADDR*)&clientAddr, clientAddrSize);
 		}
 	}
 }

@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Collections.Generic;
 
 namespace ClientForm
 {
@@ -12,23 +13,21 @@ namespace ClientForm
     {
         private string _ip;
         private int _port;
-
+        List<EndPoint> playerList = new List<EndPoint>();
         public ConnectForm()
         {
             InitializeComponent();
             Random rd = new Random();
             nicname.Text += rd.Next(1, 999);
         }
-        private static Socket ConnectSocket(string ip, int port)
+        private static Socket ConnectSocket(EndPoint address)
         {
-            IPAddress address = IPAddress.Parse(ip);
 
-            IPEndPoint ipe = new IPEndPoint(address, port);
             Socket tempSocket =
-                new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
             {
-                tempSocket.Connect(ipe);
+                tempSocket.Connect(address);
                 return tempSocket;
             }
             catch (SocketException e)
@@ -40,18 +39,15 @@ namespace ClientForm
 
         private void checkButton_Click(object sender, EventArgs e)
         {
-            string selectedItem = comboBox1.SelectedItem.ToString();
-            string ip = selectedItem.Substring(0, selectedItem.Length - 5);
-            this._ip = ip;
             this._port = 1111;
 
             Int32.TryParse(PortBox.Text, out _port);
             try
             {
                 Socket socket;
+                var adr = playerList[comboBox1.SelectedIndex];
+                var task = Task.Run(() => ConnectSocket(adr));
 
-                var task = Task.Run(() => ConnectSocket(_ip, _port));
-                
                 if (task.Wait(TimeSpan.FromSeconds(5)))
                     socket = task.Result;
                 else
@@ -81,7 +77,14 @@ namespace ClientForm
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-
+            var comboBox = (ComboBox)sender;
+            var text = comboBox.SelectedItem.ToString();
+            if (text.Contains("мест:0"))
+            {
+                checkButton.Enabled = false;
+                return;
+            }
+            checkButton.Enabled = true;
         }
 
         private async void searchButton_Click(object sender, EventArgs e)
@@ -97,20 +100,25 @@ namespace ClientForm
                 Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 s.EnableBroadcast = true;
                 byte[] msg = System.Text.Encoding.ASCII.GetBytes("This is a test\0");
-
+                byte[] playersSize = new byte[sizeof(int)];
                 // This call blocks.
-                s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Parse("192.168.3.255"), 1111));
+                s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Parse("192.168.0.255"), 1111));
                 var sw = new Stopwatch();
                 var task = Task.Run(() =>
                 {
+
+                    while (true)
                     {
-                        while (true)
-                        {
-                            s.ReceiveFrom(msg, msg.Length, SocketFlags.None, ref senderRemote);
-                            this.Invoke(new Action(() => comboBox1.Items.Add(senderRemote)));
-                        }
+                        //msg-принять число доступных мест
+                        s.ReceiveFrom(playersSize, sizeof(int), SocketFlags.None, ref senderRemote);
+                        playerList.Add(senderRemote);
+                        this.Invoke(new Action(() => comboBox1.Items.Add(senderRemote + " мест:" + BitConverter.ToInt32(playersSize, 0).ToString())));
+                        this.Invoke(new Action(() => comboBox1.SelectedIndex = 0));
+                        this.Invoke(new Action(() => checkButton.Visible=true));
                     }
-                } );
+                    
+
+                });
                 //ОТМЕНИ ТАСКУ!!!
             }
             catch (TimeoutException)
@@ -122,5 +130,7 @@ namespace ClientForm
                 searchButton.Enabled = true;
             }
         }
+
+
     }
 }

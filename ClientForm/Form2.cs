@@ -17,27 +17,47 @@ namespace ClientForm
             InitializeComponent();
         }
 
-        private void label3_Click(object sender, EventArgs e){}
+        private void label3_Click(object sender, EventArgs e) { }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            this.Hide();
+            this.Close();
         }
 
-        private void Form2_Load(object sender, EventArgs e)
+        private async void Form2_Load(object sender, EventArgs e)
         {
             label4.Text += Nickname;
-            byte[] data = new byte[2048]; // буфер для ответа
             byte[] connMessage;
-            int playersLeft = 0; // количество полученных байт
+            string playersLeft; // количество полученных байт
             connMessage = Encoding.UTF8.GetBytes("Connected" + '\0');
             _socket.Send(BitConverter.GetBytes(connMessage.Length), sizeof(int), 0);
 
+
             //Принятие сообщения о количестве игроков от сервера
             while (true)
-            {               
-                playersLeft = _socket.Receive(data, data.Length, 0);
-                label3.Text = $"Осталось игроков: {playersLeft}";
+            {            
+                playersLeft = await Task.Run(() => MessageReceive());
+                label3.Text = $"Осталось игроков: " + playersLeft;
+            }
+        }
+
+        internal string MessageReceive()
+        {
+            byte[] data = new byte[sizeof(int)]; // буфер для ответа
+            int bytes = 0; // количество полученных байт
+            try
+            {
+                bytes = _socket.Receive(data, sizeof(int), 0);
+                return BitConverter.ToInt32(data, 0).ToString();
+            }
+            catch (SocketException)
+            {
+                this.Close();
+                return "";
+            }
+            catch (ObjectDisposedException)
+            {
+                return "";
             }
         }
     }

@@ -10,10 +10,9 @@ const int gameClientCount = 256;
 SOCKET Connections[gameClientCount];
 int clientIndex = 0;
 int clientIndexCounter = 0;
-int allClients = 0;
 const int BUF_SIZE = 2048;
 const int UDP_BUF_SIZE = 1024;
-
+int playersLeftBuf = 8;
 struct sockaddr_in clientAddr;
 int clientAddrSize = sizeof(clientAddr);
 
@@ -29,40 +28,39 @@ string to_string(int param)
 }
 
 void ClientHandler(int index, std::string ip) {
-	std::string playersLeft;
 	const int maxPlayers = 8;
-	int playersLeftBuf = 8;
+	
 	char recvbuf[BUF_SIZE];
-	if (recv(Connections[index], recvbuf, BUF_SIZE, 0) > 0) 
+	while (true)
 	{
-		while (true) 
+		if (recv(Connections[index], recvbuf, BUF_SIZE, 0) > 0)
 		{
-			if (maxPlayers - allClients < playersLeftBuf)
-			{	
-				playersLeftBuf--;
-				playersLeft = to_string(playersLeftBuf);
-				send(Connections[index], playersLeft.c_str(), BUF_SIZE, NULL);
-				
+			playersLeftBuf--;
+			for (int i = 0; i < clientIndex; i++) {
+				if (Connections[i] == INVALID_SOCKET) {
+					continue;
+				}
+				send(Connections[i], (char*)&playersLeftBuf, sizeof(int), NULL);
 			}
-			else if (maxPlayers - allClients > playersLeftBuf) 
-			{	
-				playersLeftBuf++;
-				playersLeft = to_string(playersLeftBuf);
-				send(Connections[index], playersLeft.c_str(), BUF_SIZE, NULL);				
+		}
+		else
+		{
+			::closesocket(Connections[index]);
+			Connections[index] = INVALID_SOCKET;
+			playersLeftBuf++;
+			for (int i = 0; i < clientIndex; i++) {
+				if (i == index || Connections[i] == INVALID_SOCKET) {
+					continue;
+				}
+				send(Connections[i], (char*)&playersLeftBuf, sizeof(int), NULL);
 			}
-		}		
+			std::cout << "Client disconnected:" << ip << std::endl;
+			return;
+		}
 	}
-	else 
-	{
-		::closesocket(Connections[index]);
-		Connections[index] = INVALID_SOCKET;
-		std::cout << "Client disconnected:" << ip << std::endl;
-		allClients--;
-		return;
-	}	
 }
 
-void UDPReceiver( ) {
+void UDPReceiver() {
 	std::thread threads[gameClientCount];
 	int receivedMsg;
 	char msg[] = "hello";
@@ -130,7 +128,7 @@ int main()
 	std::thread threads[gameClientCount];
 	char msg[] = "hello";
 	while (true) {
-		if (allClients <= 7) {
+		if (clientIndex <= 1) {
 			newConnection = accept(serverListener, (SOCKADDR*)&serverAddress, &sizeOfAdrr); //Сокет для удержания соединения с клиентом
 			if (newConnection == 0) //Проверка соединения
 			{
@@ -143,7 +141,6 @@ int main()
 					std::thread(ClientHandler, clientIndex, inet_ntoa(serverAddress.sin_addr));
 				clientIndex++;
 				clientIndexCounter++;
-				allClients++;
 			}
 		}
 		else continue;

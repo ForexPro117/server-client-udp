@@ -44,7 +44,6 @@ namespace ClientForm
             string ip = selectedItem.Substring(0, selectedItem.Length - 5);
             this._ip = ip;
             this._port = 1111;
-            //s.Close();
 
             Int32.TryParse(PortBox.Text, out _port);
             try
@@ -52,11 +51,11 @@ namespace ClientForm
                 Socket socket;
 
                 var task = Task.Run(() => ConnectSocket(_ip, _port));
+                
                 if (task.Wait(TimeSpan.FromSeconds(5)))
                     socket = task.Result;
                 else
                     throw new TimeoutException();
-
                 if (socket == null)
                 {
                     label2.Text = "Статус: Ошибка соединения";
@@ -100,7 +99,7 @@ namespace ClientForm
                 byte[] msg = System.Text.Encoding.ASCII.GetBytes("This is a test\0");
 
                 // This call blocks.
-                s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Broadcast, 1111));
+                s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Parse("192.168.3.255"), 1111));
                 var sw = new Stopwatch();
                 var task = Task.Run(() =>
                 {
@@ -108,7 +107,7 @@ namespace ClientForm
                         while (true)
                         {
                             s.ReceiveFrom(msg, msg.Length, SocketFlags.None, ref senderRemote);
-                            comboBox1.Items.Add(senderRemote);
+                            this.Invoke(new Action(() => comboBox1.Items.Add(senderRemote)));
                         }
                     }
                 } );

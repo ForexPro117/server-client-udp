@@ -6,9 +6,11 @@
 
 #pragma warning(disable: 4996)
 
-const int size = 8;
-SOCKET Connections[size];
-int indexCounter = 0;
+const int gameClientCount = 256;
+SOCKET Connections[gameClientCount];
+int clientIndex = 0;
+int clientIndexCounter = 0;
+int allClients = 0;
 const int BUF_SIZE = 2048;
 const int UDP_BUF_SIZE = 1024;
 
@@ -35,7 +37,7 @@ void ClientHandler(int index, std::string ip) {
 			} while (iResult != msg_size);
 			s[iResult - 1] = '\0';
 
-			for (int i = 0; i < indexCounter; i++) {
+			for (int i = 0; i < clientIndexCounter; i++) {
 				if (i == index || Connections[i] == INVALID_SOCKET) {
 					continue;
 				}
@@ -46,15 +48,14 @@ void ClientHandler(int index, std::string ip) {
 			::closesocket(Connections[index]);
 			Connections[index] = INVALID_SOCKET;
 			std::cout << "Client disconnected:" << ip << std::endl;
+			allClients--;
 			return;
 		}
 	}
 }
 
 void UDPReceiver( ) {
-	SOCKET newConnection;
-	std::thread threads[size];
-	int i = 0;
+	std::thread threads[gameClientCount];
 	int receivedMsg;
 	char msg[] = "hello";
 	char recvBuf[UDP_BUF_SIZE];
@@ -65,10 +66,10 @@ void UDPReceiver( ) {
 			wprintf(L"recvfrom failed with error %d\n", WSAGetLastError());
 		}
 		// Отправка клиента в индивидуальный поток
+		else {
 			sendto(recvSocket, msg, sizeof(msg), 0, (SOCKADDR*)&clientAddr, clientAddrSize);
-
+		}
 	}
-
 }
 
 int main()
@@ -91,8 +92,6 @@ int main()
 	serverAddress.sin_port = htons(port); //Порт для идентификации программы
 	serverAddress.sin_family = AF_INET; //Семейство интернет протоколов
 
-
-
 	// Принятие широковещательного пакета, соденинение с клиентом
 	// Создание сокета для принятие датаграмм
 	recvSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -102,48 +101,44 @@ int main()
 	}
 	int broadcast = 1;
 
-
-	/*if ((setsockopt(recvSocket, SOL_SOCKET, SO_BROADCAST,
-		(char*)&broadcast, sizeof broadcast)) == -1)
-	{
-		perror("setsockopt - SO_SOCKET ");
-		exit(1);
-	}*/
-
 	int receivedMsg = bind(recvSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress));
 	if (receivedMsg != 0) {
 		wprintf(L"bind failed with error %d\n", WSAGetLastError());
 		return 1;
 	}
 
-	std::cout << "Server started: \n";
-	// Ожидание датаграмм от клиентов
-	char recvBuf[UDP_BUF_SIZE];
+	std::thread thread(UDPReceiver);
 
 	SOCKET serverListener = socket(AF_INET, SOCK_STREAM, NULL); //Сокет для прослушивания входящих соединений
 	bind(serverListener, (SOCKADDR*)&serverAddress, sizeof(serverAddress)); //Привязка сокету адреса
 	listen(serverListener, SOMAXCONN); //Ожидание соединения с клиентом
 
+	std::cout << "Server started: \n";
+
+	// Ожидание датаграмм от клиентов
 	wprintf(L"Receiving datagrams...\n");
-	
-	std::thread thread(UDPReceiver);
 
 	SOCKET newConnection;
-	std::thread threads[size];
-	int i = 0;
+	std::thread threads[gameClientCount];
 	char msg[] = "hello";
 	while (true) {
-		newConnection = accept(serverListener, (SOCKADDR*)&serverAddress, &sizeOfAdrr); //Сокет для удержания соединения с клиентом
-		if (newConnection == 0) //Проверка соединения
-		{
-			std::cout << "Error, no connection:" << inet_ntoa(serverAddress.sin_addr) << std::endl;
+		if (allClients <= 7) {
+			newConnection = accept(serverListener, (SOCKADDR*)&serverAddress, &sizeOfAdrr); //Сокет для удержания соединения с клиентом
+			if (newConnection == 0) //Проверка соединения
+			{
+				std::cout << "Error, no connection: " << inet_ntoa(serverAddress.sin_addr) << std::endl;
+			}
+			else {
+				std::cout << "Client connected: " << inet_ntoa(serverAddress.sin_addr) << std::endl;
+				Connections[clientIndex] = newConnection;
+				threads[clientIndex] =
+					std::thread(ClientHandler, clientIndex, inet_ntoa(serverAddress.sin_addr));
+				clientIndex++;
+				clientIndexCounter++;
+				allClients++;
+			}
 		}
-		else {
-			std::cout << "Client connected:" << inet_ntoa(serverAddress.sin_addr) << std::endl;
-			Connections[i] = newConnection;
-			indexCounter++;
-			threads[i] = std::thread(ClientHandler,1 ,"aa");
-		}
+		else continue;
 	}
 
 	// Закрытие сокета после окончания принятия датаграмм
@@ -153,11 +148,9 @@ int main()
 		wprintf(L"closesocket failed with error %d\n", WSAGetLastError());
 		return 1;
 	}
-
 	// Очистка памяти и выход
 	wprintf(L"Exiting.\n");
 	WSACleanup();
-	system("pause");
 	return 0;
 }
 

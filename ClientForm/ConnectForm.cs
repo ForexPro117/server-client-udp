@@ -10,10 +10,8 @@ namespace ClientForm
 {
     public partial class ConnectForm : Form
     {
-
         private string _ip;
         private int _port;
-
 
         public ConnectForm()
         {
@@ -108,7 +106,6 @@ namespace ClientForm
                 var sw = new Stopwatch();
                 var task = Task.Run(() =>
                 {
-
                     {
                         while (true)
                         {
@@ -118,17 +115,6 @@ namespace ClientForm
                     }
                 } );
                 //ОТМЕНИ ТАСКУ!!!
-                
-                int checkBuf = 0;
-
-               /* if (task.Wait(TimeSpan.FromSeconds(3)) && checkBuf != task.Result)
-                {
-                    //comboBox1.Items.Add(System.Text.Encoding.UTF8.GetString(msg, 0, msg.Length));
-                    
-                }*/
-                
-                /*checkBuf = task;
-                checkBuf = 0;*/
             }
             catch (TimeoutException)
             {

@@ -73,7 +73,7 @@
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.ControlLightLight;
-            this.ClientSize = new System.Drawing.Size(484, 461);
+            this.ClientSize = new System.Drawing.Size(482, 453);
             this.Controls.Add(this.messageBox);
             this.Controls.Add(this.TextBox);
             this.Controls.Add(this.sendButton);
@@ -83,7 +83,7 @@
             this.MinimumSize = new System.Drawing.Size(500, 500);
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "DISCORD 2.0";
+            this.Text = "Покер";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

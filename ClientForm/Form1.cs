@@ -18,15 +18,12 @@ namespace ClientForm
         }
         internal string MessageReceive()
         {
-
             byte[] data = new byte[2048]; // буфер для ответа
             StringBuilder builder = new StringBuilder();
-
             int bytes = 0; // количество полученных байт
 
             try
             {
-
                 do
                 {
                     bytes = _socket.Receive(data, data.Length, 0);
@@ -37,16 +34,12 @@ namespace ClientForm
             }
             catch (SocketException)
             {
-
                 return "";
             }
             catch (ObjectDisposedException)
             {
-
                 return "";
             }
-
-
         }
 
         private void sendMessage_Click(object sender, EventArgs e)

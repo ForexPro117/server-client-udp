@@ -64,13 +64,11 @@ namespace ClientForm
                 }
                 label2.Text = "Статус: Успех";
                 this.Hide();
-                Form1 messageForm = new Form1(socket, nicname.Text);
-                messageForm.Owner = this;
-                messageForm.ShowDialog();
+                Form2 waitingForm = new Form2(socket, nicname.Text);
+                waitingForm.Owner = this;
+                waitingForm.ShowDialog();
                 this.Show();
                 socket.Close();
-
-
             }
             catch (TimeoutException)
             {

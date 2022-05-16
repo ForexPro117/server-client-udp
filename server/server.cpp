@@ -5,7 +5,7 @@
 #pragma comment(lib, "ws2_32.lib")
 
 #pragma warning(disable: 4996)
-
+using namespace std;
 const int gameClientCount = 256;
 SOCKET Connections[gameClientCount];
 int clientIndex = 0;
@@ -19,39 +19,47 @@ int clientAddrSize = sizeof(clientAddr);
 
 SOCKET recvSocket;
 
+string to_string(int param)
+{
+	string str = "";
+	for (str = ""; param; param /= 10)
+		str += (char)('0' + param % 10);
+	reverse(str.begin(), str.end());
+	return str;
+}
+
 void ClientHandler(int index, std::string ip) {
-	int iResult;
-	int iPlace;
-	int msg_size;
-	std::string s;
+	std::string playersLeft;
+	const int maxPlayers = 8;
+	int playersLeftBuf = 8;
 	char recvbuf[BUF_SIZE];
-	while (true) {
-		if (recv(Connections[index], (char*)&msg_size, sizeof(int), NULL) > 0) {
-			s.clear();
-			iResult = 0;
-			do {
-				iPlace = iResult;
-				iResult += recv(Connections[index], recvbuf, BUF_SIZE, 0);
-				s.insert(iPlace, recvbuf);
-
-			} while (iResult != msg_size);
-			s[iResult - 1] = '\0';
-
-			for (int i = 0; i < clientIndexCounter; i++) {
-				if (i == index || Connections[i] == INVALID_SOCKET) {
-					continue;
-				}
-				send(Connections[i], s.c_str(), msg_size, NULL);
+	if (recv(Connections[index], recvbuf, BUF_SIZE, 0) > 0) 
+	{
+		while (true) 
+		{
+			if (maxPlayers - allClients < playersLeftBuf)
+			{	
+				playersLeftBuf--;
+				playersLeft = to_string(playersLeftBuf);
+				send(Connections[index], playersLeft.c_str(), BUF_SIZE, NULL);
+				
 			}
-		}
-		else {
-			::closesocket(Connections[index]);
-			Connections[index] = INVALID_SOCKET;
-			std::cout << "Client disconnected:" << ip << std::endl;
-			allClients--;
-			return;
-		}
+			else if (maxPlayers - allClients > playersLeftBuf) 
+			{	
+				playersLeftBuf++;
+				playersLeft = to_string(playersLeftBuf);
+				send(Connections[index], playersLeft.c_str(), BUF_SIZE, NULL);				
+			}
+		}		
 	}
+	else 
+	{
+		::closesocket(Connections[index]);
+		Connections[index] = INVALID_SOCKET;
+		std::cout << "Client disconnected:" << ip << std::endl;
+		allClients--;
+		return;
+	}	
 }
 
 void UDPReceiver( ) {

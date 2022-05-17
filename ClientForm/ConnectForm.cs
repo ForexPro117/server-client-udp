@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -9,30 +9,27 @@ namespace ClientForm
 {
     public partial class ConnectForm : Form
     {
-        
+
         private string _ip;
         private int _port;
-
-
+        List<EndPoint> serverList = new List<EndPoint>();
         public ConnectForm()
         {
             InitializeComponent();
             Random rd = new Random();
             nicname.Text += rd.Next(1, 999);
-        }
-        private static Socket ConnectSocket(string ip, int port)
-        {
-            IPAddress address = IPAddress.Parse(ip);
 
-            IPEndPoint ipe = new IPEndPoint(address, port);
+        }
+        private Socket ConnectSocket(EndPoint serverAdr)
+        {
             Socket tempSocket =
-                new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                new Socket(serverAdr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
             {
-                tempSocket.Connect(ipe);
+                tempSocket.Connect(serverAdr);
                 return tempSocket;
             }
-            catch (SocketException e)
+            catch (SocketException)
             {
                 tempSocket.Close();
                 return null;
@@ -40,15 +37,16 @@ namespace ClientForm
         }
         private void checkButton_Click(object sender, EventArgs e)
         {
-            /*label2.Text = "Статус: Проверка";
+            label2.Text = "Статус: Проверка";
             checkButton.Enabled = false;
             this._ip = IPBox.Text;
             Int32.TryParse(PortBox.Text, out _port);
             try
             {
                 Socket socket;
+                EndPoint adr= serverList[listBox1.SelectedIndex];
+                var task = Task.Run(() => ConnectSocket(adr));
 
-                var task = Task.Run(() => ConnectSocket(_ip, _port));
                 if (task.Wait(TimeSpan.FromSeconds(5)))
                     socket = task.Result;
                 else
@@ -76,19 +74,59 @@ namespace ClientForm
             finally
             {
                 checkButton.Enabled = true;
-            }*/
-            //IPHostEntry hostEntry = Dns.GetHostEntry(Dns.GetHostName());
-            //IPEndPoint endPoint = new IPEndPoint(hostEntry.AddressList[0], 11000);
+            }
+
+
+
+        }
+
+        private void udpController()
+        {
             IPEndPoint ssender = new IPEndPoint(IPAddress.Any, 0);
             EndPoint senderRemote = (EndPoint)ssender;
-            Socket s = new Socket(AddressFamily.InterNetwork,SocketType.Dgram,ProtocolType.Udp);
+            Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            serverList.Clear();
             s.EnableBroadcast = true;
-            byte[] msg = System.Text.Encoding.ASCII.GetBytes("This is a test\0");
+            s.ReceiveTimeout = 5000;
+            byte[] msg = BitConverter.GetBytes(1);
             // This call blocks.
-            s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Broadcast,1111));
-            s.ReceiveFrom(msg,msg.Length, SocketFlags.None,ref senderRemote);
-            nicname.Text = System.Text.Encoding.UTF8.GetString(msg, 0, msg.Length);
-            s.Close();
+            s.SendTo(msg, 0, sizeof(int), SocketFlags.None, new IPEndPoint(IPAddress.Broadcast, 1111));
+
+            try
+            {
+                while (true)
+                {
+                    s.ReceiveFrom(msg, sizeof(int), SocketFlags.None, ref senderRemote);
+                    serverList.Add(senderRemote);
+                    this.Invoke(new Action(() => listBox1.Items.Add(senderRemote + $" Игроков:{BitConverter.ToInt32(msg, 0)}/8")));
+                }
+
+            }
+            catch (SocketException)
+            {
+
+            }
+            finally
+            {
+                this.Invoke(new Action(() => listBox1.Items.Add(senderRemote + $" Игроков:8/8")));
+                s.Close();
+            }
+
+
+        }
+
+        private async void checkButton1_Click(object sender, EventArgs e)
+        {
+            listBox1.Items.Clear();
+            button1.Enabled = false;
+            await Task.Run(() => udpController());
+            button1.Enabled = true;
+        }
+
+        private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var list = (ListBox)sender;
+            checkButton.Enabled = list.SelectedItem.ToString().Contains("8/8") ? false : true;
 
         }
 

@@ -50,6 +50,7 @@
             this.label1.Size = new System.Drawing.Size(56, 13);
             this.label1.TabIndex = 0;
             this.label1.Text = "Никнейм:";
+            this.label1.Click += new System.EventHandler(this.hiden_click);
             // 
             // nicname
             // 
@@ -73,12 +74,11 @@
             // 
             // IPBox
             // 
-            this.IPBox.Location = new System.Drawing.Point(75, 89);
+            this.IPBox.Location = new System.Drawing.Point(75, 426);
             this.IPBox.MaxLength = 15;
             this.IPBox.Name = "IPBox";
             this.IPBox.Size = new System.Drawing.Size(134, 20);
             this.IPBox.TabIndex = 4;
-            this.IPBox.Text = "127.0.0.1";
             this.IPBox.Visible = false;
             // 
             // label2
@@ -111,7 +111,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(34, 92);
+            this.label4.Location = new System.Drawing.Point(49, 429);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(20, 13);
             this.label4.TabIndex = 7;
@@ -121,14 +121,14 @@
             // toolStripComboBox1
             // 
             this.toolStripComboBox1.Name = "toolStripComboBox1";
-            this.toolStripComboBox1.Size = new System.Drawing.Size(121, 21);
+            this.toolStripComboBox1.Size = new System.Drawing.Size(121, 23);
             // 
             // listBox1
             // 
             this.listBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
             this.listBox1.FormattingEnabled = true;
             this.listBox1.ItemHeight = 20;
-            this.listBox1.Location = new System.Drawing.Point(75, 133);
+            this.listBox1.Location = new System.Drawing.Point(75, 93);
             this.listBox1.Name = "listBox1";
             this.listBox1.Size = new System.Drawing.Size(278, 244);
             this.listBox1.TabIndex = 9;
@@ -136,7 +136,7 @@
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(158, 383);
+            this.button1.Location = new System.Drawing.Point(157, 367);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(110, 23);
             this.button1.TabIndex = 10;

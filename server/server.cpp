@@ -2,6 +2,7 @@
 #include <winsock2.h>
 #include <iostream>
 #include <thread>
+#include <map>
 #pragma comment(lib, "ws2_32.lib")
 
 #pragma warning(disable: 4996)
@@ -11,31 +12,67 @@ SOCKET Connections[size];
 SOCKET udpSocket;
 const int BUF_SIZE = 2048;
 int PlayerCount = 0;
+std::string s[10];
 
-
+enum Packet
+{
+	P_UserListChange,
+	P_UserListGet,
+	P_ChatSend
+};
 void ClientHandler(int index, std::string ip) {
-	int iResult;
-	int iPlace;
-	int msg_size;
-	std::string s;
-	char recvbuf[BUF_SIZE];
-	while (true) {
-		if (recv(Connections[index], (char*)&msg_size, sizeof(int), NULL) > 0) {
-			s.clear();
-			iResult = 0;
-			do {
-				iPlace = iResult;
-				iResult += recv(Connections[index], recvbuf, BUF_SIZE, 0);
-				s.insert(iPlace, recvbuf);
+	Packet packettype;
+	while (true)
+	{
+		if (recv(Connections[index], (char*)&packettype, sizeof(Packet), NULL) > 0)
+		{
+			switch (packettype){
+			case P_UserListChange:
+			{
 
-			} while (iResult != msg_size);
-			s[iResult - 1] = '\0';
+			}
+			break;
+			case P_UserListGet:
+			{
 
-			for (int i = 0; i < PlayerCount; i++) {
-				if (i == index || Connections[i] == INVALID_SOCKET) {
-					continue;
+			}
+			break;
+			case P_ChatSend:
+			{
+				int iResult;
+				int iPlace;
+				int msg_size;
+				std::string s;
+				char recvbuf[BUF_SIZE];
+				if (recv(Connections[index], (char*)&msg_size, sizeof(int), NULL) > 0) {
+					s.clear();
+					iResult = 0;
+					do {
+						iPlace = iResult;
+						iResult += recv(Connections[index], recvbuf, BUF_SIZE, 0);
+						s.insert(iPlace, recvbuf);
+
+					} while (iResult != msg_size);
+					s[iResult - 1] = '\0';
+
+					for (int i = 0; i < PlayerCount; i++) {
+						if (i == index || Connections[i] == INVALID_SOCKET) {
+							continue;
+						}
+						send(Connections[i], s.c_str(), msg_size, NULL);
+					}
 				}
-				send(Connections[i], s.c_str(), msg_size, NULL);
+				else {
+					::closesocket(Connections[index]);
+					Connections[index] = INVALID_SOCKET;
+					std::cout << "Client disconnected:" << ip << std::endl;
+					return;
+				}
+
+			}
+			break;
+			default:
+				break;
 			}
 		}
 		else {
@@ -46,6 +83,10 @@ void ClientHandler(int index, std::string ip) {
 		}
 	}
 }
+
+
+
+
 void UDPController() {
 	SOCKADDR_IN clientAddress; //Структура для хранения адресов интернет протоколов
 	int sizeOfAddress = sizeof(clientAddress);
@@ -53,7 +94,7 @@ void UDPController() {
 	int receivedMsg;
 
 	while (true) {
-		
+
 		receivedMsg = recvfrom(udpSocket, (char*)&msg, sizeof(int), 0, (SOCKADDR*)&clientAddress, &sizeOfAddress);
 		if (receivedMsg == SOCKET_ERROR) {
 			wprintf(L"recvfrom failed with error %d\n", WSAGetLastError());
@@ -72,6 +113,7 @@ int main()
 		exit(1);
 	}
 
+
 	SOCKADDR_IN address; //Структура для хранения адресов интернет протоколов
 	int sizeOfAddress = sizeof(address);
 	/*std::cout << "Enter port - default 1111:";
@@ -88,7 +130,7 @@ int main()
 		wprintf(L"socket failed with error %d\n", WSAGetLastError());
 		return 1;
 	}
-	
+
 
 	int receivedMsg = bind(udpSocket, (SOCKADDR*)&address, sizeOfAddress);
 	if (receivedMsg != 0) {

@@ -59,6 +59,7 @@ namespace ClientForm
                 }
                 label2.Text = "Статус: Успех";
                 this.Hide();
+                listBox1.Items.Clear();
                 Form1 messageForm = new Form1(socket, nicname.Text);
                 messageForm.Owner = this;
                 messageForm.ShowDialog();
@@ -115,7 +116,7 @@ namespace ClientForm
             }
             finally
             {
-                this.Invoke(new Action(() => listBox1.Items.Add(senderRemote + $" Игроков:8/8")));
+               
                 s.Close();
             }
 
@@ -154,6 +155,7 @@ namespace ClientForm
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             var list = (ListBox)sender;
+            if (list.Text != "")
             checkButton.Enabled = list.SelectedItem.ToString().Contains("8/8") ? false : true;
 
         }

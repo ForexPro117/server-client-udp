@@ -13,13 +13,18 @@ SOCKET udpSocket;
 const int BUF_SIZE = 2048;
 int PlayerCount = 0;
 char nicnames[size][16];
+bool ready[size];
+int PlayerRole[size];
 
 enum Packet
 {
 	P_UserListChange,
 	P_UserMakeLeader,
 	P_UserListGet,
-	P_ChatSend
+	P_ChatSend,
+	P_error,
+	P_UserReadyChange,
+	P_GameStart
 };
 
 
@@ -30,14 +35,25 @@ void UserLeave(int index, std::string ip)
 	closesocket(Connections[index]);
 	Connections[index] = INVALID_SOCKET;
 	strcpy(nicnames[index], "null");
+	ready[index] = false;
+	PlayerRole[index] = -1;
 	nlohmann::json json{};
+	nlohmann::json bools{};
+	bools = ready;
 	json = nicnames;
+	int msg_size = json.dump().size();
+	int bools_size = bools.dump().size();
 	for (int i = 0; i < size; i++) {
-		if (i == index || Connections[i] == INVALID_SOCKET) {
+		if (Connections[i] == INVALID_SOCKET) {
 			continue;
 		}
 		send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
-		send(Connections[i], json.dump().c_str(), json.dump().size(), NULL);
+
+		send(Connections[i], (char*)&msg_size, sizeof(int), NULL);
+		send(Connections[i], json.dump().c_str(), msg_size, NULL);
+
+		send(Connections[i], (char*)&bools_size, sizeof(int), NULL);
+		send(Connections[i], bools.dump().c_str(), bools_size, NULL);
 	}
 	std::cout << "Client disconnected:" << ip << std::endl;
 }
@@ -46,32 +62,86 @@ void UserLeave(int index, std::string ip)
 
 
 void ClientHandler(int index, std::string ip) {
-	
+
 	Packet	packettype = P_UserListChange;
 	nlohmann::json json{};
+	nlohmann::json bools{};
+	bools = ready;
 	json = nicnames;
+	int msg_size = json.dump().size();
+	int bools_size = bools.dump().size();
 	for (int i = 0; i < size; i++) {
 		if (Connections[i] == INVALID_SOCKET) {
 			continue;
 		}
 		send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
-		send(Connections[i], json.dump().c_str(), json.dump().size(), NULL);
+
+		send(Connections[i], (char*)&msg_size, sizeof(int), NULL);
+		send(Connections[i], json.dump().c_str(), msg_size, NULL);
+
+		send(Connections[i], (char*)&bools_size, sizeof(int), NULL);
+		send(Connections[i], bools.dump().c_str(), bools_size, NULL);
 	}
-	
+
 	while (true)
 	{
 
 		if (recv(Connections[index], (char*)&packettype, sizeof(Packet), NULL) > 0)
 		{
 			switch (packettype) {
-			case P_UserListChange:
+			case P_UserReadyChange:
 			{
+				ready[index] = ready[index] == true ? false : true;
+				packettype = P_UserListChange;
+				bools = ready;
+				json = nicnames;
+				msg_size = json.dump().size();
+				bools_size = bools.dump().size();
 
+
+				for (int i = 0; i < size; i++) {
+					if (Connections[i] == INVALID_SOCKET) {
+						continue;
+					}
+					send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+
+					send(Connections[i], (char*)&msg_size, sizeof(int), NULL);
+					send(Connections[i], json.dump().c_str(), msg_size, NULL);
+
+					send(Connections[i], (char*)&bools_size, sizeof(int), NULL);
+					send(Connections[i], bools.dump().c_str(), bools_size, NULL);
+				}
 			}
 			break;
-			case P_UserListGet:
+			case P_GameStart:
 			{
-				
+				int num = 0;
+				std::rand() % 4;
+				for (int i = 0; i < size; i++)
+				{
+					if (Connections[i] == INVALID_SOCKET|| Connections[i] == 0) {
+						continue;
+					}
+					if (i > 3)
+						PlayerRole[i] = 3;
+					else
+					{
+						PlayerRole[i] = num;
+						num++;
+					}
+				}
+				packettype = P_GameStart;
+				json = PlayerRole;
+				msg_size = json.dump().size();
+
+				for (int i = 0; i < size; i++) {
+					if (Connections[i] == INVALID_SOCKET) {
+						continue;
+					}
+					send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+					send(Connections[i], json.dump().c_str(), msg_size, NULL);
+				}
+
 			}
 			break;
 			case P_ChatSend:
@@ -108,14 +178,14 @@ void ClientHandler(int index, std::string ip) {
 
 			}
 			break;
-			
+
 			default:
 				break;
 			}
-		
+
 		}
 		else {
-			UserLeave(index,ip);
+			UserLeave(index, ip);
 			return;
 		}
 	}
@@ -146,7 +216,10 @@ void UDPController() {
 int main()
 {
 	for (int i = 0; i < size; i++)
+	{
 		strcpy(nicnames[i], "null");
+		PlayerRole[i] = -1;
+	}
 
 	WSAData wsaData;
 	WORD DLLVersion = MAKEWORD(2, 1);
@@ -171,7 +244,7 @@ int main()
 		wprintf(L"socket failed with error %d\n", WSAGetLastError());
 		return 1;
 	}
-	
+
 	int receivedMsg = bind(udpSocket, (SOCKADDR*)&address, sizeOfAddress);
 	if (receivedMsg != 0) {
 		wprintf(L"bind failed with error %d\n", WSAGetLastError());
@@ -189,7 +262,7 @@ int main()
 
 	SOCKET	newConnection;
 	std::thread threads[size];
-	
+
 	int msg_size;
 
 	for (int i = 0; i < size; i++)
@@ -206,7 +279,7 @@ int main()
 
 
 			recv(Connections[i], (char*)&msg_size, sizeof(int), NULL);
-			recv(Connections[i],nicnames[i], msg_size, 0);
+			recv(Connections[i], nicnames[i], msg_size, 0);
 
 			PlayerCount++;
 			threads[i] = std::thread(ClientHandler, i, inet_ntoa(address.sin_addr));

@@ -60,6 +60,7 @@ namespace ClientForm
                 label2.Text = "Статус: Успех";
                 this.Hide();
                 listBox1.Items.Clear();
+                checkButton.Enabled = false;
                 Form1 messageForm = new Form1(socket, nicname.Text);
                 messageForm.Owner = this;
                 messageForm.ShowDialog();

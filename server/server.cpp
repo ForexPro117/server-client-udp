@@ -24,7 +24,8 @@ enum Packet
 	P_ChatSend,
 	P_error,
 	P_UserReadyChange,
-	P_GameStart
+	P_GameStart,
+	P_NextStage
 };
 
 
@@ -115,21 +116,67 @@ void ClientHandler(int index, std::string ip) {
 			break;
 			case P_GameStart:
 			{
-				int num = 0;
-				std::rand() % 4;
+				int man = 0;
 				for (int i = 0; i < size; i++)
+					if (Connections[i] != INVALID_SOCKET)
+						man++;
+
+				int mafia = 0;
+				int comisar = 0;
+				int doctor = 0;
+				int civil = 0;
+				if (man < 6)
 				{
-					if (Connections[i] == INVALID_SOCKET|| Connections[i] == 0) {
-						continue;
-					}
-					if (i > 3)
-						PlayerRole[i] = 3;
-					else
+					for (int i = 0; i < size; i++)
 					{
-						PlayerRole[i] = num;
-						num++;
+						if (Connections[i] == INVALID_SOCKET /*|| Connections[i] == 0*/) {
+							continue;
+						}
+						if (mafia < 1) {
+							PlayerRole[i] = 0;
+							mafia++;
+						}
+						else if (comisar == 0) {
+							PlayerRole[i] = 1;
+							comisar++;
+						}
+						else if (doctor == 0) {
+							PlayerRole[i] = 2;
+							doctor++;
+						}
+						else
+							PlayerRole[i] = 3;
 					}
+
 				}
+				else
+					for (int i = 0; i < size; i++)
+					{
+
+						if (Connections[i] == INVALID_SOCKET /*|| Connections[i] == 0*/) {
+							continue;
+						}
+						if (mafia < 2) {
+							PlayerRole[i] = 0;
+							mafia++;
+						}
+						else if (comisar == 0) {
+							PlayerRole[i] = 1;
+							comisar++;
+						}
+						else if (doctor == 0) {
+							PlayerRole[i] = 2;
+							doctor++;
+						}
+						else
+							PlayerRole[i] = 3;
+
+					}
+
+
+				srand(time(NULL));
+				std::random_shuffle(PlayerRole, PlayerRole + man);
+
 				packettype = P_GameStart;
 				json = PlayerRole;
 				msg_size = json.dump().size();
@@ -178,7 +225,17 @@ void ClientHandler(int index, std::string ip) {
 
 			}
 			break;
-
+			case P_NextStage:
+			{
+				packettype = P_NextStage;
+				for (int i = 0; i < size; i++) {
+					if (Connections[i] == INVALID_SOCKET) {
+						continue;
+					}
+					send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+				}
+			}
+			break;
 			default:
 				break;
 			}
@@ -261,11 +318,13 @@ int main()
 	listen(serverListener, SOMAXCONN); //Ожидание соединения с клиентом
 
 	SOCKET	newConnection;
-	std::thread threads[size];
+	std::thread threads[100];
 
 	int msg_size;
 
-	for (int i = 0; i < size; i++)
+	int position = 0;
+	int threadsCounter = 0;
+	while (true)
 	{
 		newConnection = accept(serverListener, (SOCKADDR*)&address, &sizeOfAddress); //Сокет для удержания соединения с клиентом
 		if (newConnection == 0) //Проверка соединения
@@ -275,14 +334,26 @@ int main()
 		else {
 
 			std::cout << "Client connected:" << inet_ntoa(address.sin_addr) << std::endl;
-			Connections[i] = newConnection;
+			Connections[position] = newConnection;
 
 
-			recv(Connections[i], (char*)&msg_size, sizeof(int), NULL);
-			recv(Connections[i], nicnames[i], msg_size, 0);
+			recv(Connections[position], (char*)&msg_size, sizeof(int), NULL);
+			recv(Connections[position], nicnames[position], msg_size, 0);
 
 			PlayerCount++;
-			threads[i] = std::thread(ClientHandler, i, inet_ntoa(address.sin_addr));
+			threads[threadsCounter] = std::thread(ClientHandler, position, inet_ntoa(address.sin_addr));
+			threadsCounter++;
+
+			if (position > 5)
+				for (int i = 0; i < size; i++)
+				{
+					if (Connections[i] == INVALID_SOCKET)
+					{
+						position = i;
+						break;
+					}
+				}
+			position++;
 		}
 	}
 	WSACleanup();

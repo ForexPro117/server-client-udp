@@ -18,7 +18,8 @@ namespace ClientForm
         P_ChatSend,
         P_error,
         P_UserReadyChange,
-        P_GameStart
+        P_GameStart,
+        P_NextStage
     };
     enum Role
     {
@@ -43,6 +44,11 @@ namespace ClientForm
         int _playerIndex;
         int countReadyPlayrs = 0;
         List<string> _players;
+        int stage=0;
+        int mafia = 0;
+        int comisar = 0;
+        int doctor = 0;
+        int civil = 0;
 
         public Form1(Socket socket, string name)
         {
@@ -128,6 +134,23 @@ namespace ClientForm
             string listJson = MessageReceive();
             List<Role> listRole = JsonConvert.DeserializeObject<List<Role>>(listJson);
             listRole = listRole.Where(x => x != Role.NoneRole).ToList();
+            if(listRole.Count < 6)
+            {
+                 mafia =1;
+                 comisar = 1;
+                 doctor = 1;
+                 civil = listRole.Count-3;
+            }
+            else
+            {
+                {
+                    mafia = 2;
+                    comisar = 1;
+                    doctor = 1;
+                    civil = listRole.Count - 4;
+                }
+            }
+
             _playerIndex = _players.IndexOf(Nickname);
             Task.Delay(12000).Wait();
             switch (listRole[_playerIndex])
@@ -159,6 +182,9 @@ namespace ClientForm
                 default:
                     break;
             }
+
+            _socket.Send(BitConverter.GetBytes((int)Packet.P_NextStage), sizeof(Packet), 0);
+
 
             return listRole;
         }
@@ -268,12 +294,12 @@ namespace ClientForm
                         
                         listBox1.Items.Clear();
                         listBox1.Items.AddRange(_players.ToArray());
-                        listBox1.Items[_playerIndex] = "Вы:" + listBox1.Items[_playerIndex];
+                        listBox1.Items[_playerIndex] = "*" + listBox1.Items[_playerIndex];
                         if (_role == Role.Mafia)
                         {
                             for (int i = 0; i < _players.Count; i++)
                                 if (roleList[i] == Role.Mafia)
-                                    listBox1.Items[i] += "- Мафия";
+                                    listBox1.Items[i] += "(Мафия)";
                         }
 
 

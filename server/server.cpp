@@ -25,7 +25,8 @@ enum Packet
 	P_error,
 	P_UserReadyChange,
 	P_GameStart,
-	P_NextStage
+	P_NextStage,
+	P_SelectChange
 };
 
 
@@ -118,7 +119,7 @@ void ClientHandler(int index, std::string ip) {
 			{
 				int man = 0;
 				for (int i = 0; i < size; i++)
-					if (Connections[i] != INVALID_SOCKET)
+					if (Connections[i] != INVALID_SOCKET && Connections[i] != 0)
 						man++;
 
 				int mafia = 0;
@@ -129,10 +130,11 @@ void ClientHandler(int index, std::string ip) {
 				{
 					for (int i = 0; i < size; i++)
 					{
-						if (Connections[i] == INVALID_SOCKET /*|| Connections[i] == 0*/) {
+						if (Connections[i] == INVALID_SOCKET || Connections[i] == 0) {
+							PlayerRole[i] = -1;
 							continue;
 						}
-						if (mafia < 1) {
+						if (mafia == 0) {
 							PlayerRole[i] = 0;
 							mafia++;
 						}
@@ -153,7 +155,8 @@ void ClientHandler(int index, std::string ip) {
 					for (int i = 0; i < size; i++)
 					{
 
-						if (Connections[i] == INVALID_SOCKET /*|| Connections[i] == 0*/) {
+						if (Connections[i] == INVALID_SOCKET || Connections[i] == 0) {
+							PlayerRole[i] = -1;
 							continue;
 						}
 						if (mafia < 2) {
@@ -175,7 +178,7 @@ void ClientHandler(int index, std::string ip) {
 
 
 				srand(time(NULL));
-				std::random_shuffle(PlayerRole, PlayerRole + man);
+				std::random_shuffle(PlayerRole, PlayerRole + size);
 
 				packettype = P_GameStart;
 				json = PlayerRole;
@@ -236,6 +239,17 @@ void ClientHandler(int index, std::string ip) {
 				}
 			}
 			break;
+			case P_SelectChange:
+			{
+				packettype = P_SelectChange;
+				for (int i = 0; i < size; i++) {
+					if (Connections[i] == INVALID_SOCKET) {
+						continue;
+					}
+					send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+				}
+			}
+			break;
 			default:
 				break;
 			}
@@ -275,7 +289,6 @@ int main()
 	for (int i = 0; i < size; i++)
 	{
 		strcpy(nicnames[i], "null");
-		PlayerRole[i] = -1;
 	}
 
 	WSAData wsaData;

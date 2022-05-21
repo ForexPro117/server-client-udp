@@ -19,7 +19,8 @@ namespace ClientForm
         P_error,
         P_UserReadyChange,
         P_GameStart,
-        P_NextStage
+        P_NextStage,
+        P_SelectChange
     };
     enum Role
     {
@@ -30,12 +31,6 @@ namespace ClientForm
         Civil
 
     };
-    enum Status
-    {
-        InDead,
-        Healing,
-        Dead
-    }
     public partial class Form1 : Form
     {
         private static Socket _socket;
@@ -44,11 +39,7 @@ namespace ClientForm
         int _playerIndex;
         int countReadyPlayrs = 0;
         List<string> _players;
-        int stage=0;
-        int mafia = 0;
-        int comisar = 0;
-        int doctor = 0;
-        int civil = 0;
+
 
         public Form1(Socket socket, string name)
         {
@@ -129,31 +120,16 @@ namespace ClientForm
             }
         }
 
-        internal List<Role> GetRoleList()
+        internal GameController GetRoleList()
         {
             string listJson = MessageReceive();
             List<Role> listRole = JsonConvert.DeserializeObject<List<Role>>(listJson);
             listRole = listRole.Where(x => x != Role.NoneRole).ToList();
-            if(listRole.Count < 6)
-            {
-                 mafia =1;
-                 comisar = 1;
-                 doctor = 1;
-                 civil = listRole.Count-3;
-            }
-            else
-            {
-                {
-                    mafia = 2;
-                    comisar = 1;
-                    doctor = 1;
-                    civil = listRole.Count - 4;
-                }
-            }
-
             _playerIndex = _players.IndexOf(Nickname);
-            Task.Delay(12000).Wait();
-            switch (listRole[_playerIndex])
+            GameController gameObject = new GameController(listRole, _playerIndex);
+
+            Task.Delay(4000).Wait();
+            switch (gameObject.UserRole)
             {
                 case Role.Mafia:
                     pictureBox2.Image = ClientForm.Properties.Resources.mafia;
@@ -182,11 +158,7 @@ namespace ClientForm
                 default:
                     break;
             }
-
-            _socket.Send(BitConverter.GetBytes((int)Packet.P_NextStage), sizeof(Packet), 0);
-
-
-            return listRole;
+            return gameObject;
         }
 
         private void sendMessage_Click(object sender, EventArgs e)
@@ -219,8 +191,10 @@ namespace ClientForm
             _socket.Send(Encoding.UTF8.GetBytes(Nickname), Nickname.Length, 0);
             Packet packet = Packet.P_error;
             byte[] buffer = new byte[sizeof(Packet)];
-            TextBox.Text = $"{null,-35}Соединение установленно!\n\n";
+            GameController gameObj;
+            TextBox.Text = $"{null,-35}Соединение установлено!\n\n";
             TextBox.Text = "СИСТЕМА: Ожидание подключения игроков!";
+
 
             while (true)
             {
@@ -265,46 +239,60 @@ namespace ClientForm
                         break;
 
                     case Packet.P_UserListChange:
-                        var result = await Task.Run(() => ListReceive());
-                        listBox1.Items.Clear();
-                        listBox1.Items.AddRange(result.Where(x => x != "null").ToArray());
-                        //TTTTTTYTA KOLWO
-                        button2.Enabled = countReadyPlayrs > 0 ? true : false;
-                        break;
-                    case Packet.P_GameStart:
-                        button1.Visible = false;
-                        button2.Visible = false;
-
-                        Timer timer = new Timer();
-                        int time = 10;
-                        timer.Tick += new EventHandler((send, EventArgs) =>
                         {
-                            TextBox.Text = $"СИСТЕМА: До начала {time} секунд!";
-                            if (time == 0)
-                            {
-
-                                timer.Stop();
-                            }
-                            time--;
-                        });
-                        timer.Interval = 1000;
-                        timer.Start();
-
-                        var roleList = await Task.Run(() => GetRoleList());
-                        
-                        listBox1.Items.Clear();
-                        listBox1.Items.AddRange(_players.ToArray());
-                        listBox1.Items[_playerIndex] = "*" + listBox1.Items[_playerIndex];
-                        if (_role == Role.Mafia)
-                        {
-                            for (int i = 0; i < _players.Count; i++)
-                                if (roleList[i] == Role.Mafia)
-                                    listBox1.Items[i] += "(Мафия)";
+                            var result = await Task.Run(() => ListReceive());
+                            listBox1.Items.Clear();
+                            listBox1.Items.AddRange(result.Where(x => x != "null").ToArray());
+                            //Сделай больше 0!!!!
+                            button2.Enabled = countReadyPlayrs > 0 ? true : false;
                         }
+                        break;
 
 
+                    case Packet.P_GameStart:
+                        {
+                            button1.Visible = false;
+                            button2.Visible = false;
+
+                            Timer timer = new Timer();
+                            int time = 2;
+                            timer.Tick += new EventHandler((send, EventArgs) =>
+                            {
+                                TextBox.Text = $"СИСТЕМА: До начала {time} секунд!";
+                                if (time == 0)
+                                {
+
+                                    timer.Stop();
+                                }
+                                time--;
+                            });
+                            timer.Interval = 1000;
+                            timer.Start();
+                            //**//
+                             gameObj = await Task.Run(() => GetRoleList());
+
+                            listBox1.Items.Clear();
+                            listBox1.Items.AddRange(_players.ToArray());
+                            listBox1.Items[_playerIndex] = "*" + listBox1.Items[_playerIndex];
+                            if (gameObj.UserRole == Role.Mafia)
+                            {
+                                for (int i = 0; i < _players.Count; i++)
+                                    if (gameObj.RoleList[i] == Role.Mafia)
+                                        listBox1.Items[i] += "(Мафия)";
+                            }
+                            if (gameObj._playerIndex == 0)
+                                _socket.Send(BitConverter.GetBytes((int)Packet.P_NextStage), sizeof(Packet), 0);
+                        }
+                        break;
+
+                    case Packet.P_NextStage:
+                        //if(gameObj.stage>0)
 
                         break;
+                    case Packet.P_SelectChange:
+
+                        break;
+
                     case Packet.P_error:
                         {
                             TextBox.Text += $"\n{null,-40}Ошибка соединения!";
@@ -347,6 +335,14 @@ namespace ClientForm
 
         }
 
-
+        private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            
+            /*var list = (ListBox)sender;
+            if (list.Text != "")
+                checkButton.Enabled = list.SelectedItem.ToString().Contains("8/8") ? false : true;*/
+            /*var list = (ListBox)sender;
+            listBox1.Items[0] += "✓";*/
+        }
     }
 }

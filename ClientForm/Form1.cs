@@ -39,6 +39,7 @@ namespace ClientForm
         int _playerIndex;
         int countReadyPlayrs = 0;
         List<string> _players;
+        GameController gameObject;
 
 
         public Form1(Socket socket, string name)
@@ -120,13 +121,13 @@ namespace ClientForm
             }
         }
 
-        internal GameController GetRoleList()
+        internal void GetRoleList()
         {
             string listJson = MessageReceive();
             List<Role> listRole = JsonConvert.DeserializeObject<List<Role>>(listJson);
             listRole = listRole.Where(x => x != Role.NoneRole).ToList();
             _playerIndex = _players.IndexOf(Nickname);
-            GameController gameObject = new GameController(listRole, _playerIndex);
+            gameObject = new GameController(listRole, _playerIndex);
 
             Task.Delay(4000).Wait();
             switch (gameObject.UserRole)
@@ -158,7 +159,6 @@ namespace ClientForm
                 default:
                     break;
             }
-            return gameObject;
         }
 
         private void sendMessage_Click(object sender, EventArgs e)
@@ -191,7 +191,6 @@ namespace ClientForm
             _socket.Send(Encoding.UTF8.GetBytes(Nickname), Nickname.Length, 0);
             Packet packet = Packet.P_error;
             byte[] buffer = new byte[sizeof(Packet)];
-            GameController gameObj;
             TextBox.Text = $"{null,-35}Соединение установлено!\n\n";
             TextBox.Text = "СИСТЕМА: Ожидание подключения игроков!";
 
@@ -269,18 +268,18 @@ namespace ClientForm
                             timer.Interval = 1000;
                             timer.Start();
                             //**//
-                             gameObj = await Task.Run(() => GetRoleList());
+                            await Task.Run(() => GetRoleList());
 
                             listBox1.Items.Clear();
                             listBox1.Items.AddRange(_players.ToArray());
                             listBox1.Items[_playerIndex] = "*" + listBox1.Items[_playerIndex];
-                            if (gameObj.UserRole == Role.Mafia)
+                            if (gameObject.UserRole == Role.Mafia)
                             {
                                 for (int i = 0; i < _players.Count; i++)
-                                    if (gameObj.RoleList[i] == Role.Mafia)
+                                    if (gameObject.RoleList[i] == Role.Mafia)
                                         listBox1.Items[i] += "(Мафия)";
                             }
-                            if (gameObj._playerIndex == 0)
+                            if (gameObject._playerIndex == 0)
                                 _socket.Send(BitConverter.GetBytes((int)Packet.P_NextStage), sizeof(Packet), 0);
                         }
                         break;
@@ -290,7 +289,13 @@ namespace ClientForm
 
                         break;
                     case Packet.P_SelectChange:
-
+                        string mess = await Task.Run(() => MessageReceive());
+                        gameObject.selectorList = JsonConvert.DeserializeObject<List<int>>(mess);
+                        listBox1.Items.Clear();
+                       listBox1.Items.AddRange(_players.ToArray());
+                        for (int i = 0; i < gameObject.selectorList.Count; i++)
+                            for (int j = 0; j < gameObject.selectorList[i]; j++)
+                                listBox1.Items[i] += "✓";
                         break;
 
                     case Packet.P_error:
@@ -337,12 +342,17 @@ namespace ClientForm
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            
-            /*var list = (ListBox)sender;
-            if (list.Text != "")
-                checkButton.Enabled = list.SelectedItem.ToString().Contains("8/8") ? false : true;*/
-            /*var list = (ListBox)sender;
-            listBox1.Items[0] += "✓";*/
+            if (gameObject != null)
+            {
+                var list = (ListBox)sender;
+                gameObject.setChoice(list.SelectedIndex);
+                Byte[] bytesSend;
+                string message = JsonConvert.SerializeObject(gameObject.selectorList);
+                bytesSend = Encoding.UTF8.GetBytes(message);
+                _socket.Send(BitConverter.GetBytes((int)Packet.P_SelectChange), sizeof(Packet), 0);
+                _socket.Send(BitConverter.GetBytes(bytesSend.Length), sizeof(int), 0);
+                _socket.Send(bytesSend, bytesSend.Length, 0);
+            }
         }
     }
 }

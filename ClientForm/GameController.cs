@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ClientForm
@@ -24,6 +25,9 @@ namespace ClientForm
         internal List<Role> RoleList;
         List<Status> StatusList;
         internal int _playerIndex;
+        internal List<int> selectorList;
+        bool choice = false;
+        int choicePosition = -1;
 
         public GameController(List<Role> roleList, int playerIndex)
         {
@@ -31,8 +35,12 @@ namespace ClientForm
             RoleList = roleList;
             _playerIndex = playerIndex;
             StatusList = new List<Status>();
+            selectorList = new List<int>();
             foreach (Role role in roleList)
+            {
                 StatusList.Add(Status.Alive);
+                selectorList.Add(0);
+            }
 
             UserRole = RoleList[_playerIndex];
             if (RoleList.Count < 6)
@@ -51,8 +59,35 @@ namespace ClientForm
                     civil = RoleList.Count - 4;
                 }
             }
-        }
 
+        }
+        public void setChoice(int position)
+        {
+            if (choicePosition != -1)
+            {
+                if (choicePosition != position)
+                {
+                    selectorList[choicePosition]--;
+                    choice = false;
+                }
+            }
+
+            
+
+
+            if (!choice)
+                {
+                    selectorList[position]++;
+                    choice = true;
+                }
+                else
+                {
+                    selectorList[position]--;
+                    choice = false;
+                }
+
+            choicePosition = position;
+        }
 
     }
 }

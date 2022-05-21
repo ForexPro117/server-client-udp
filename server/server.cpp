@@ -241,12 +241,24 @@ void ClientHandler(int index, std::string ip) {
 			break;
 			case P_SelectChange:
 			{
-				packettype = P_SelectChange;
-				for (int i = 0; i < size; i++) {
-					if (Connections[i] == INVALID_SOCKET) {
-						continue;
+				int msg_size;
+				char recvbuf[BUF_SIZE];
+				if (recv(Connections[index], (char*)&msg_size, sizeof(int), NULL) > 0) {
+					recv(Connections[index], recvbuf, BUF_SIZE, 0);
+
+					packettype = P_SelectChange;
+					for (int i = 0; i < size; i++) {
+						if (Connections[i] == INVALID_SOCKET) {
+							continue;
+							
+						}
+						send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+						send(Connections[i], recvbuf, msg_size, NULL);
 					}
-					send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+				}
+				else {
+					UserLeave(index, ip);
+					return;
 				}
 			}
 			break;

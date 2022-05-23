@@ -119,6 +119,7 @@
     <Content Include="image\civil.png" />
     <Content Include="image\commissar.png" />
     <Content Include="image\doctor.png" />
+    <None Include="Resources\Image1.bmp" />
     <None Include="image\mafia.png" />
   </ItemGroup>
   <ItemGroup>

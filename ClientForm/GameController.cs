@@ -65,7 +65,7 @@ namespace ClientForm
         {
             if (choicePosition != -1)
             {
-                if (choicePosition != position)
+                if (choicePosition != position &&choice!=false)
                 {
                     selectorList[choicePosition]--;
                     choice = false;

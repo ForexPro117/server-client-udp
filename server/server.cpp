@@ -352,13 +352,25 @@ int main()
 	while (true)
 	{
 		newConnection = accept(serverListener, (SOCKADDR*)&address, &sizeOfAddress); //Сокет для удержания соединения с клиентом
-		if (newConnection == 0) //Проверка соединения
+		
+
+			for (int i = 0; i < size; i++)
+			{
+				if (Connections[i] == INVALID_SOCKET|| Connections[i] == 0)
+				{
+					position = i;
+					break;
+				}
+				position = size;
+			}
+		if (newConnection == 0 || position==size) //Проверка соединения
 		{
 			std::cout << "Error, no connection:" << inet_ntoa(address.sin_addr) << std::endl;
 		}
 		else {
 
-			std::cout << "Client connected:" << inet_ntoa(address.sin_addr) << std::endl;
+			std::cout << "Client connected:" << inet_ntoa(address.sin_addr)
+				<< " position:" <<position+1<<"/" << size << std::endl;
 			Connections[position] = newConnection;
 
 
@@ -368,17 +380,10 @@ int main()
 			PlayerCount++;
 			threads[threadsCounter] = std::thread(ClientHandler, position, inet_ntoa(address.sin_addr));
 			threadsCounter++;
-
-			if (position > 5)
-				for (int i = 0; i < size; i++)
-				{
-					if (Connections[i] == INVALID_SOCKET)
-					{
-						position = i;
-						break;
-					}
-				}
 			position++;
+
+			
+			
 		}
 	}
 	WSACleanup();

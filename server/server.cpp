@@ -373,7 +373,6 @@ int main()
 				<< " position:" <<position+1<<"/" << size << std::endl;
 			Connections[position] = newConnection;
 
-
 			recv(Connections[position], (char*)&msg_size, sizeof(int), NULL);
 			recv(Connections[position], nicnames[position], msg_size, 0);
 

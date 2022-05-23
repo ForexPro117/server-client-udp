@@ -126,9 +126,13 @@ namespace ClientForm
             List<Role> listRole = JsonConvert.DeserializeObject<List<Role>>(listJson);
             listRole = listRole.Where(x => x != Role.NoneRole).ToList();
             _playerIndex = _players.IndexOf(Nickname);
+            if (_playerIndex == -1)
+            {
+                throw new ArgumentException("Это ты виноват!");
+            }
             gameObject = new GameController(listRole, _playerIndex);
 
-            Task.Delay(4000).Wait();
+            //Task.Delay(4000).Wait();
             switch (gameObject.UserRole)
             {
                 case Role.Mafia:
@@ -186,8 +190,9 @@ namespace ClientForm
         private async void Form1_Load(object sender, EventArgs e)
         {
 
-            _socket.Send(BitConverter.GetBytes(Nickname.Length), sizeof(int), 0);
-            _socket.Send(Encoding.UTF8.GetBytes(Nickname), Nickname.Length, 0);
+            var sendName = Encoding.UTF8.GetBytes(Nickname + "\0");
+            _socket.Send(BitConverter.GetBytes(sendName.Length), sizeof(int), 0);
+            _socket.Send(sendName, sendName.Length, 0);
             Packet packet = Packet.P_error;
             byte[] buffer = new byte[sizeof(Packet)];
             TextBox.Text = $"{null,-35}Соединение установлено!\n\n";
@@ -254,13 +259,12 @@ namespace ClientForm
                         {
                             button1.Visible = false;
                             button2.Visible = false;
-
                             Timer timer = new Timer();
                             int time = 2;
                             timer.Tick += new EventHandler((send, EventArgs) =>
                             {
                                 TextBox.Text = $"СИСТЕМА: До начала {time} секунд!";
-                                if (time == 0)
+                                if ( time == 0)
                                 {
 
                                     timer.Stop();
@@ -271,6 +275,8 @@ namespace ClientForm
                             timer.Start();
                             //**//
                             await Task.Run(() => GetRoleList());
+
+                            
 
                             listBox1.Items.Clear();
                             _players[_playerIndex] = "*" + _players[_playerIndex];
@@ -288,7 +294,11 @@ namespace ClientForm
                         break;
 
                     case Packet.P_NextStage:
-                        //if(gameObj.stage>0)
+                        switch (gameObject.stage)
+                        {
+                            case 1:
+                                break;
+                        }
 
                         break;
                     case Packet.P_SelectChange:
@@ -297,7 +307,7 @@ namespace ClientForm
                         switch (gameObject.stage)
                         {
                             case 1:
-                                if(gameObject.UserRole == Role.Mafia)
+                                if (gameObject.UserRole == Role.Mafia)
                                 {
                                     listBox1.Items.Clear();
                                     listBox1.Items.AddRange(_players.ToArray());
@@ -327,11 +337,13 @@ namespace ClientForm
                                 }
                                 break;
                             case 4:
-                                listBox1.Items.Clear();
-                                listBox1.Items.AddRange(_players.ToArray());
-                                for (int i = 0; i < gameObject.selectorList.Count; i++)
-                                    for (int j = 0; j < gameObject.selectorList[i]; j++)
-                                        listBox1.Items[i] += "⚖";
+                                {
+                                    listBox1.Items.Clear();
+                                    listBox1.Items.AddRange(_players.ToArray());
+                                    for (int i = 0; i < gameObject.selectorList.Count; i++)
+                                        for (int j = 0; j < gameObject.selectorList[i]; j++)
+                                            listBox1.Items[i] += "⚖";
+                                }
                                 break;
                         }
                         break;
@@ -378,21 +390,40 @@ namespace ClientForm
 
         }
 
+        void SendChoice(ListBox list)
+        {
+            gameObject.setChoice(list.SelectedIndex);
+            Byte[] bytesSend;
+            string message = JsonConvert.SerializeObject(gameObject.selectorList);
+            bytesSend = Encoding.UTF8.GetBytes(message);
+            _socket.Send(BitConverter.GetBytes((int)Packet.P_SelectChange), sizeof(Packet), 0);
+            _socket.Send(BitConverter.GetBytes(bytesSend.Length), sizeof(int), 0);
+            _socket.Send(bytesSend, bytesSend.Length, 0);
+        }
+
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (gameObject != null)
             {
                 var list = (ListBox)sender;
-                if (gameObject.RoleList[list.SelectedIndex] != gameObject.UserRole)
+                switch (gameObject.stage)
                 {
-                    gameObject.setChoice(list.SelectedIndex);
-                    Byte[] bytesSend;
-                    string message = JsonConvert.SerializeObject(gameObject.selectorList);
-                    bytesSend = Encoding.UTF8.GetBytes(message);
-                    _socket.Send(BitConverter.GetBytes((int)Packet.P_SelectChange), sizeof(Packet), 0);
-                    _socket.Send(BitConverter.GetBytes(bytesSend.Length), sizeof(int), 0);
-                    _socket.Send(bytesSend, bytesSend.Length, 0);
+                    case 1:
+                        if (gameObject.RoleList[list.SelectedIndex] != gameObject.UserRole)
+                            SendChoice(list);
+                        break;
+                    case 2:
+                        SendChoice(list);
+                        break;
+                    case 3:
+                        if (list.SelectedIndex != gameObject._playerIndex)
+                            SendChoice(list);
+                        break;
+                    case 4:
+                        SendChoice(list);
+                        break;
                 }
+
             }
         }
     }

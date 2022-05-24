@@ -132,7 +132,7 @@ namespace ClientForm
             }
             gameObject = new GameController(listRole, _playerIndex);
 
-            //Task.Delay(4000).Wait();
+            Task.Delay(4000).Wait();
             switch (gameObject.UserRole)
             {
                 case Role.Mafia:
@@ -187,6 +187,8 @@ namespace ClientForm
             }
 
         }
+
+
         private async void Form1_Load(object sender, EventArgs e)
         {
 
@@ -197,6 +199,9 @@ namespace ClientForm
             byte[] buffer = new byte[sizeof(Packet)];
             TextBox.Text = $"{null,-35}Соединение установлено!\n\n";
             TextBox.Text = "СИСТЕМА: Ожидание подключения игроков!";
+
+            Timer timer;
+            int time;
 
 
             while (true)
@@ -231,11 +236,21 @@ namespace ClientForm
                                 sendButton.Enabled = false;
                                 messageBox.Enabled = false;
                             }
-                            if (TextBox.Text.Length > 2000000)
+                            switch (gameObject.stage)
                             {
-                                TextBox.Text = $"{null,-20}{DateTime.Now:t} Произошла очистка старых сообщений!\n\n";
+                                case 0:
+                                    TextBox.Text += message;
+                                    break;
+                                case 1:
+                                    if (gameObject.UserRole == Role.Mafia &&
+                                        gameObject.playerStatus != Status.Dead)
+                                        TextBox.Text += message;
+                                    break;
+                                case 4:
+                                    if (gameObject.playerStatus != Status.Dead)
+                                        TextBox.Text += message;
+                                    break;
                             }
-                            TextBox.Text += message;
                         }
                         break;
                     case Packet.P_UserReadyChange:
@@ -259,12 +274,15 @@ namespace ClientForm
                         {
                             button1.Visible = false;
                             button2.Visible = false;
-                            Timer timer = new Timer();
-                            int time = 2;
+                            messageBox.Enabled = false;
+                            sendButton.Enabled = false;
+                            listBox1.Enabled = false;
+                            timer = new Timer();
+                            time = 2;
                             timer.Tick += new EventHandler((send, EventArgs) =>
                             {
                                 TextBox.Text = $"СИСТЕМА: До начала {time} секунд!";
-                                if ( time == 0)
+                                if (time == 0)
                                 {
 
                                     timer.Stop();
@@ -274,9 +292,9 @@ namespace ClientForm
                             timer.Interval = 1000;
                             timer.Start();
                             //**//
-                            await Task.Run(() => GetRoleList());
 
-                            
+                            await Task.Delay(TimeSpan.FromSeconds(time))
+                                .ContinueWith(_ => GetRoleList());
 
                             listBox1.Items.Clear();
                             _players[_playerIndex] = "*" + _players[_playerIndex];
@@ -287,17 +305,132 @@ namespace ClientForm
                                         _players[i] += "(М)";
                             }
                             listBox1.Items.AddRange(_players.ToArray());
-
+                            gameObject.stage = 1;
                             if (gameObject._playerIndex == 0)
                                 _socket.Send(BitConverter.GetBytes((int)Packet.P_NextStage), sizeof(Packet), 0);
                         }
                         break;
 
                     case Packet.P_NextStage:
+                        ///--------
+                        ///
+                        timer = new Timer();
+                        time = 20;
+                        progressBar1.Maximum = time;
+                        progressBar1.Value = time;
+                        progressBar1.Visible = true;
+                        timer.Tick += new EventHandler((send, EventArgs) =>
+                        {
+                            if (time == 0)
+                            {
+
+                                timer.Stop();
+
+
+                                messageBox.Enabled = false;
+                                sendButton.Enabled = false;
+                                listBox1.Enabled = false;
+                                var maxVoices = gameObject.selectorList.Max();
+                                var playerPosition = gameObject.selectorList.IndexOf(0);
+                                if (maxVoices > 0)
+                                    switch (gameObject.stage)
+                                    {
+                                        case 1:
+                                            gameObject.SetStatus(playerPosition, Status.InDead);
+                                            break;
+                                        case 2:
+                                            gameObject.SetStatus(playerPosition, Status.Healing);
+                                            break;
+                                        case 3:
+                                            gameObject.SetStatus(playerPosition, Status.InPrison);
+                                            break;
+                                        case 4:
+                                            gameObject.SetStatus(playerPosition, Status.Dead);
+                                            break;
+                                    }
+
+                                if (gameObject.stage == 4)
+                                    gameObject.stage = 1;
+                                else
+                                    gameObject.stage++;
+
+                                gameObject.ClearSelector();
+
+                                if (gameObject._playerIndex == 0)
+                                    _socket.Send(BitConverter.GetBytes((int)Packet.P_NextStage), sizeof(Packet), 0);
+                                return;
+                            }
+                            progressBar1.Value--;
+                            time--;
+                        });
+                        timer.Interval = 1000;
+                        //----
                         switch (gameObject.stage)
                         {
                             case 1:
+                                if (gameObject.mafia > 0)
+                                {
+
+                                    TextBox.Text += "СИСТЕМА:Сейчас ход мафии! 20 сек на ход!\n";
+                                    if (gameObject.UserRole == Role.Mafia &&
+                                        gameObject.playerStatus != Status.Dead)
+                                    {
+                                        TextBox.Text += "Мафия может общаться между собой.\n";
+                                        messageBox.Enabled = true;
+                                        sendButton.Enabled = true;
+                                        listBox1.Enabled = true;
+                                    }
+                                    timer.Start();
+                                }
                                 break;
+                            case 2:
+                                if (gameObject.doctor > 0)
+                                {
+
+                                    TextBox.Text += "СИСТЕМА:Сейчас ход доктора! 20 сек на ход!\n";
+                                    if (gameObject.UserRole == Role.doc &&
+                                        gameObject.playerStatus != Status.Dead)
+                                    {
+                                        TextBox.Text += "Доктор может спасти себя!\n";
+                                        listBox1.Enabled = true;
+                                    }
+                                    timer.Start();
+                                }
+                                break;
+                            case 3:
+                                if (gameObject.comisar > 0)
+                                {
+
+                                    TextBox.Text += "СИСТЕМА:Сейчас ход комиссара! 20 сек на ход!\n";
+                                    if (gameObject.UserRole == Role.Com &&
+                                        gameObject.playerStatus != Status.Dead)
+                                    {
+                                        TextBox.Text += "Не стесняйтесь сажать в тюрьму кого хотите!\n";
+                                        listBox1.Enabled = true;
+                                    }
+                                    timer.Start();
+                                }
+                                break;
+                            case 4:
+                                time = 60;
+                                progressBar1.Maximum = time;
+                                progressBar1.Value = time;
+                                if (4 > 0)
+                                {
+
+                                    TextBox.Text += "СИСТЕМА:Наступило утро!\n" +
+                                        "Произошли такие события:!\n";
+                                    if (gameObject.playerStatus != Status.Dead)
+                                    {
+                                        TextBox.Text += "У вас 60 сек, чтобы выбрать кого отправть в тюрьму!\n";
+                                        messageBox.Enabled = true;
+                                        sendButton.Enabled = true;
+                                        listBox1.Enabled = true;
+                                    }
+                                    timer.Start();
+                                }
+                                break;
+
                         }
 
                         break;
@@ -392,7 +525,7 @@ namespace ClientForm
 
         void SendChoice(ListBox list)
         {
-            gameObject.setChoice(list.SelectedIndex);
+            gameObject.SetChoice(list.SelectedIndex);
             Byte[] bytesSend;
             string message = JsonConvert.SerializeObject(gameObject.selectorList);
             bytesSend = Encoding.UTF8.GetBytes(message);
@@ -409,18 +542,22 @@ namespace ClientForm
                 switch (gameObject.stage)
                 {
                     case 1:
-                        if (gameObject.RoleList[list.SelectedIndex] != gameObject.UserRole)
+                        if (gameObject.RoleList[list.SelectedIndex] != gameObject.UserRole &&
+                            gameObject.CanAnyAction(list.SelectedIndex))
                             SendChoice(list);
                         break;
                     case 2:
-                        SendChoice(list);
+                        if (gameObject.CanAnyAction(list.SelectedIndex))
+                            SendChoice(list);
                         break;
                     case 3:
-                        if (list.SelectedIndex != gameObject._playerIndex)
+                        if (list.SelectedIndex != gameObject._playerIndex &&
+                            gameObject.CanAnyAction(list.SelectedIndex))
                             SendChoice(list);
                         break;
                     case 4:
-                        SendChoice(list);
+                        if (gameObject.CanAnyAction(list.SelectedIndex))
+                            SendChoice(list);
                         break;
                 }
 

@@ -236,19 +236,25 @@ namespace ClientForm
                                 sendButton.Enabled = false;
                                 messageBox.Enabled = false;
                             }
-                            switch (gameObject.stage)
+                            if(gameObject==null)
                             {
-                                case 0:
-                                    TextBox.Text += message;
-                                    break;
-                                case 1:
-                                    if (gameObject.UserRole == Role.Mafia)
-                                        TextBox.Text += message;
-                                    break;
-                                case 4:
-                                    TextBox.Text += message;
-                                    break;
+                                TextBox.Text += message;
+                                break;
                             }
+
+                            switch (gameObject.stage)
+                                {
+                                    case 0:
+                                        TextBox.Text += message;
+                                        break;
+                                    case 1:
+                                        if (gameObject.UserRole == Role.Mafia)
+                                            TextBox.Text += message;
+                                        break;
+                                    case 4:
+                                        TextBox.Text += message;
+                                        break;
+                                }
                         }
                         break;
                     case Packet.P_UserReadyChange:

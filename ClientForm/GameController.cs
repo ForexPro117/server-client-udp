@@ -23,7 +23,6 @@ namespace ClientForm
         internal Role UserRole;
         internal List<Role> RoleList;
         List<Status> StatusList;
-        internal Status playerStatus = Status.Alive;
         internal int _playerIndex;
         internal List<int> selectorList;
         bool choice = false;
@@ -91,13 +90,14 @@ namespace ClientForm
         }
         public void SetStatus(int playerPosition, Status status)
         {
-            if (playerPosition == _playerIndex)
-                playerStatus = status;
             StatusList[playerPosition] = status;
         }
+        public List<Status> GetStatusList()
+        => this.StatusList;
+
+
         public bool CanAnyAction(int playerPosition)
-        => this.StatusList[playerPosition] != Status.InDead &&
-            this.StatusList[playerPosition] != Status.InPrison;
+        => this.StatusList[playerPosition] != Status.Dead;
 
         public void ClearSelector()
         {
@@ -106,6 +106,28 @@ namespace ClientForm
                 selectorList[i] = 0;
             }
         }
-
+        public void PlayerKill(int position)
+        {
+            switch(RoleList[position])
+            {
+                case Role.Mafia:
+                    mafia--;
+                    this.StatusList[position] = Status.Dead;
+                    break;
+                case Role.doc:
+                    doctor--;
+                    this.StatusList[position] = Status.Dead;
+                    break;
+                case Role.Com:
+                    comisar--;
+                    this.StatusList[position] = Status.Dead;
+                    break;
+                case Role.Civil:
+                    civil--;
+                    this.StatusList[position] = Status.Dead;
+                    break;
+            }
+        }
+        
     }
 }

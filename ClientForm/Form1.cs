@@ -198,7 +198,7 @@ namespace ClientForm
             Packet packet = Packet.P_error;
             byte[] buffer = new byte[sizeof(Packet)];
             TextBox.Text = $"{null,-35}Соединение установлено!\n\n";
-            TextBox.Text = "Система: Ожидание подключения игроков!";
+            TextBox.Text = "Система: Ожидание подключения игроков!\n";
 
             Timer timer;
             int time;

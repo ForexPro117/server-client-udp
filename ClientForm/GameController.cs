@@ -101,6 +101,8 @@ namespace ClientForm
 
         public void ClearSelector()
         {
+            this.choicePosition = -1;
+            this.choice = false;
             for (int i = 0; i < selectorList.Count; i++)
             {
                 selectorList[i] = 0;

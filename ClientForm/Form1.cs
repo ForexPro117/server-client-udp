@@ -137,25 +137,25 @@ namespace ClientForm
             {
                 case Role.Mafia:
                     pictureBox2.Image = ClientForm.Properties.Resources.mafia;
-                    this.Invoke(new Action(() => TextBox.Text = "СИСТЕМА: Ваша роль - МАФИЯ!\n" +
+                    this.Invoke(new Action(() => TextBox.Text = "Система: Ваша роль - МАФИЯ!\n" +
                         "Убейте всех своих врагов вместе со своими союзниками(если они есть)\n"));
                     _role = Role.Mafia;
                     break;
                 case Role.Com:
                     pictureBox2.Image = ClientForm.Properties.Resources.commissar;
-                    this.Invoke(new Action(() => TextBox.Text = TextBox.Text = "СИСТЕМА: Ваша роль - Комиссар!\n" +
+                    this.Invoke(new Action(() => TextBox.Text = TextBox.Text = "Система: Ваша роль - Комиссар!\n" +
                         "Поймайте преступников, но будьте осторожны и не задержите невиновных!\n"));
                     _role = Role.Com;
                     break;
                 case Role.doc:
                     pictureBox2.Image = ClientForm.Properties.Resources.doctor;
-                    this.Invoke(new Action(() => TextBox.Text = TextBox.Text = "СИСТЕМА: Ваша роль - Доктор!\n" +
+                    this.Invoke(new Action(() => TextBox.Text = TextBox.Text = "Система: Ваша роль - Доктор!\n" +
                         "Вы можете спасти человека от гибели, но зачем вам это!?\n"));
                     _role = Role.doc;
                     break;
                 case Role.Civil:
                     pictureBox2.Image = ClientForm.Properties.Resources.civil;
-                    this.Invoke(new Action(() => TextBox.Text = TextBox.Text = "СИСТЕМА: Ваша роль - Мирный житель!\n" +
+                    this.Invoke(new Action(() => TextBox.Text = TextBox.Text = "Система: Ваша роль - Мирный житель!\n" +
                         "Вы можете только умирать и голосовать на совете, ужасная участь...\n"));
                     _role = Role.Civil;
                     break;
@@ -198,7 +198,7 @@ namespace ClientForm
             Packet packet = Packet.P_error;
             byte[] buffer = new byte[sizeof(Packet)];
             TextBox.Text = $"{null,-35}Соединение установлено!\n\n";
-            TextBox.Text = "СИСТЕМА: Ожидание подключения игроков!";
+            TextBox.Text = "Система: Ожидание подключения игроков!";
 
             Timer timer;
             int time;
@@ -262,7 +262,7 @@ namespace ClientForm
                                 listBox1.Items.Clear();
                                 listBox1.Items.AddRange(result.Where(x => x != "null").ToArray());
                                 //Сделай больше 0!!!!
-                                button2.Enabled = countReadyPlayrs > 0 ? true : false;
+                                button2.Enabled = countReadyPlayrs > 3 ? true : false;
                             }
                         }
                         break;
@@ -276,10 +276,10 @@ namespace ClientForm
                             sendButton.Enabled = false;
                             listBox1.Enabled = false;
                             timer = new Timer();
-                            time = 2;
+                            time = 5;
                             timer.Tick += new EventHandler((send, EventArgs) =>
                             {
-                                TextBox.Text = $"СИСТЕМА: До начала {time} секунд!";
+                                TextBox.Text = $"Система: До начала {time} секунд!";
                                 if (time == 0)
                                 {
 
@@ -313,7 +313,7 @@ namespace ClientForm
                         ///--------
                         ///
                         timer = new Timer();
-                        time = 5;
+                        time = 20;
                         progressBar1.Maximum = time;
                         progressBar1.Value = time;
                         progressBar1.Visible = true;
@@ -330,6 +330,7 @@ namespace ClientForm
                                 listBox1.Enabled = false;
                                 var maxVoices = gameObject.selectorList.Max();
                                 var playerPosition = gameObject.selectorList.IndexOf(maxVoices);
+                                gameObject.ClearSelector();
                                 if (maxVoices > 0)
                                 {
                                     switch (gameObject.stage)
@@ -346,24 +347,21 @@ namespace ClientForm
                                         case 4:
                                             gameObject.PlayerKill(playerPosition);
                                             TextBox.Text += $"Игрок \"{_players[playerPosition] }\" " +
-                                            $"вылетает по решению голосования!" +
-                                                $" Его роль - \"{gameObject.RoleList[playerPosition]}\"\n";
+                                            $"вылетает по решению голосования!\n" +
+                                                $"Его роль - \"{gameObject.RoleList[playerPosition]}\"\n";
                                             _players[playerPosition] += $" ({gameObject.RoleList[playerPosition]})👻";
+                                            listBox1.Items.Clear();
+                                            listBox1.Items.AddRange(_players.ToArray());
+                                            if (!this.CanContinue())
+                                                break;
+                                            await Task.Delay(TimeSpan.FromSeconds(4));
+                                            gameObject.stage = 0;
                                             break;
                                     }
-                                    /* TextBox.Text = $"ASAS {maxVoices}, POSITION  {playerPosition}\n";
-                                     TextBox.Text += $"DEBUG PLAER{_players[playerPosition]}" +
-                                     $" is {gameObject.GetStatusList()[playerPosition]}\n";*/
                                 }
 
-                                if (gameObject.stage == 4)
-                                    gameObject.stage = 1;
-                                else
-                                    gameObject.stage++;
-
-                                gameObject.ClearSelector();
-
-                                if (gameObject._playerIndex == 0)
+                                gameObject.stage++;
+                                if (gameObject._playerIndex == 0 && gameObject.stage < 5)
                                 {
                                     await Task.Delay(TimeSpan.FromSeconds(4));
                                     _socket.Send(BitConverter.GetBytes((int)Packet.P_NextStage), sizeof(Packet), 0);
@@ -378,7 +376,8 @@ namespace ClientForm
                         switch (gameObject.stage)
                         {
                             case 1:
-                                TextBox.Text += "СИСТЕМА:Сейчас ход мафии! 20 сек на ход!\n";
+                                TextBox.Text = $"{null,-35}Начало новой ночи!\n";
+                                TextBox.Text += "Система:Сейчас ход мафии! 20 сек на ход!\n";
                                 if (gameObject.UserRole == Role.Mafia &&
                                     gameObject.CanAnyAction(gameObject._playerIndex))
                                 {
@@ -393,7 +392,7 @@ namespace ClientForm
                                 if (gameObject.doctor > 0)
                                 {
 
-                                    TextBox.Text += "СИСТЕМА:Сейчас ход доктора! 20 сек на ход!\n";
+                                    TextBox.Text += "Система:Сейчас ход доктора! 20 сек на ход!\n";
                                     if (gameObject.UserRole == Role.doc &&
                                         gameObject.CanAnyAction(gameObject._playerIndex))
                                     {
@@ -413,7 +412,7 @@ namespace ClientForm
                                 if (gameObject.comisar > 0)
                                 {
 
-                                    TextBox.Text += "СИСТЕМА:Сейчас ход комиссара! 20 сек на ход!\n";
+                                    TextBox.Text += "Система:Сейчас ход комиссара! 20 сек на ход!\n";
                                     if (gameObject.UserRole == Role.Com &&
                                         gameObject.CanAnyAction(gameObject._playerIndex))
                                     {
@@ -430,8 +429,9 @@ namespace ClientForm
                                 }
                                 break;
                             case 4:
-                                TextBox.Text += "СИСТЕМА:Наступило утро!\n" +
-                                        "Произошли такие события:\n";
+                                TextBox.Text = $"{null,-40}Наступило утро!\n" +
+                                        "Произошли такие события:\n" +
+                                        "******************************\n";
                                 var list = gameObject.GetStatusList();
                                 for (int i = 0; i < list.Count; i++)
                                 {
@@ -456,51 +456,27 @@ namespace ClientForm
                                             break;
                                     }
                                 }
+                                TextBox.Text += "******************************\n";
                                 listBox1.Items.Clear();
                                 listBox1.Items.AddRange(_players.ToArray());
-                                if (gameObject.mafia == 0)
+
+                                if (!this.CanContinue())
+                                    break;
+
+
+                                time = 60;
+                                progressBar1.Maximum = time;
+                                progressBar1.Value = time;
+                                if (gameObject.CanAnyAction(gameObject._playerIndex))
                                 {
-                                    TextBox.Text = "ФИНАЛ: Победа мирных жителей," +
-                                        "мафии не осталось!";
-                                    button1.Visible = true;
-                                    button2.Visible = true;
-                                    button1.Text = "Готов";
+                                    TextBox.Text += "У вас 60 сек, чтобы выбрать кого отправть в тюрьму!\n";
+                                    messageBox.Enabled = true;
+                                    sendButton.Enabled = true;
                                     listBox1.Enabled = true;
-                                    break;
                                 }
 
 
-                                var playersAlive = gameObject
-                                   .GetStatusList()
-                                   .Where(x => x == Status.Alive)
-                                   .Count();
-                                if (playersAlive - gameObject.mafia < 2)
-                                {
-                                    TextBox.Text = "ФИНАЛ: Победа мафии!";
-                                    button1.Visible = true;
-                                    button2.Visible = true;
-                                    break;
-                                }
-
-                                if (gameObject.mafia > 0)
-                                {
-
-                                    if (gameObject.CanAnyAction(gameObject._playerIndex))
-                                    {
-                                        time = 60;
-                                        progressBar1.Maximum = time;
-                                        progressBar1.Value = time;
-
-                                        TextBox.Text += "У вас 60 сек, чтобы выбрать кого отправть в тюрьму!\n";
-
-
-                                        messageBox.Enabled = true;
-                                        sendButton.Enabled = true;
-                                        listBox1.Enabled = true;
-
-                                        timer.Start();
-                                    }
-                                }
+                                timer.Start();
                                 break;
 
                         }
@@ -615,7 +591,7 @@ namespace ClientForm
                     switch (gameObject.stage)
                     {
                         case 1:
-                            if (gameObject.RoleList[list.SelectedIndex] != gameObject.UserRole &&
+                            if (gameObject.RoleList[list.SelectedIndex] != Role.Mafia &&
                                 gameObject.CanAnyAction(list.SelectedIndex))
                                 SendChoice(list);
                             break;
@@ -636,9 +612,32 @@ namespace ClientForm
 
             }
         }
-        private void CanContinue()
+        private bool CanContinue()
         {
+            if (gameObject.mafia == 0)
+            {
+                TextBox.Text += "ФИНАЛ: Победа мирных жителей," +
+                    "мафии не осталось!";
+                button1.Visible = true;
+                button2.Visible = true;
+                listBox1.Enabled = true;
+                return false;
+            }
 
+
+            var playersAlive = gameObject
+               .GetStatusList()
+               .Where(x => x == Status.Alive)
+               .Count();
+            if (playersAlive - gameObject.mafia < 2)
+            {
+                TextBox.Text += "ФИНАЛ: Победа мафии!";
+                button1.Visible = true;
+                button2.Visible = true;
+                listBox1.Enabled = true;
+                return false;
+            }
+            return true;
         }
     }
 }

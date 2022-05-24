@@ -43,8 +43,8 @@ namespace ClientForm
 
                 Socket socket;
                 //TODO Не забыть убрать!!!
-                //EndPoint adr = serverList[listBox1.SelectedIndex];
-                EndPoint adr = new IPEndPoint(IPAddress.Parse("127.0.0.1"),1111);
+                EndPoint adr = serverList[listBox1.SelectedIndex];
+               // EndPoint adr = new IPEndPoint(IPAddress.Parse("127.0.0.1"),1111);
                 var task = Task.Run(() => ConnectSocket(adr));
 
                 if (task.Wait(TimeSpan.FromSeconds(5)))
@@ -182,7 +182,7 @@ namespace ClientForm
 
         private void ConnectForm_Load(object sender, EventArgs e)
         {
-            checkButton_Click(sender, e);
+            
         }
     }
 

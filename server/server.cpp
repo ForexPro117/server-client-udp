@@ -312,11 +312,11 @@ int main()
 
 	SOCKADDR_IN address; //Структура для хранения адресов интернет протоколов
 	int sizeOfAddress = sizeof(address);
-	/*std::cout << "Enter port - default 1111:";
+	std::cout << "Enter port - default 1111:";
 	int port;
 	std::cin >> port;
-	if (port == 0 || port > 65535)*/
-	int	port = 1111;
+	if (port == 0 || port > 65535)
+	port = 1111;
 	address.sin_addr.s_addr = INADDR_ANY; //ip фдрес, указан localhost
 	address.sin_port = htons(port); //Порт для идентификации программы
 	address.sin_family = AF_INET; //Семейство интернет протоколов

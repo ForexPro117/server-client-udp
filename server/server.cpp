@@ -5,81 +5,143 @@
 #pragma comment(lib, "ws2_32.lib")
 
 #pragma warning(disable: 4996)
-using namespace std;
-const int gameClientCount = 256;
-SOCKET Connections[gameClientCount];
-int clientIndex = 0;
-int clientIndexCounter = 0;
+const int size = 8;
+SOCKET Connections[size];
+SOCKET udpSocket;
 const int BUF_SIZE = 2048;
-const int UDP_BUF_SIZE = 1024;
-int playersLeftBuf = 8;
-struct sockaddr_in clientAddr;
-int clientAddrSize = sizeof(clientAddr);
+int PlayerCount = 0;
+char nicnames[size][16];
+bool ready[size];
+int PlayerRole[size];
 
-SOCKET recvSocket;
-
-string to_string(int param)
+enum Packet
 {
-	string str = "";
-	for (str = ""; param; param /= 10)
-		str += (char)('0' + param % 10);
-	reverse(str.begin(), str.end());
-	return str;
-}
+	P_UserListChange,
+	P_UserMakeLeader,
+	P_UserListGet,
+	P_ChatSend,
+	P_error,
+	P_UserReadyChange,
+	P_GameStart,
+	P_NextStage,
+	P_SelectChange
+};
 
-void ClientHandler(int index, std::string ip) {
-	const int maxPlayers = 8;
-	
-	char recvbuf[BUF_SIZE];
-	while (true)
-	{
-		if (recv(Connections[index], recvbuf, BUF_SIZE, 0) > 0)
-		{
-			playersLeftBuf--;
-			for (int i = 0; i < clientIndex; i++) {
-				if (Connections[i] == INVALID_SOCKET) {
-					continue;
-				}
-				send(Connections[i], (char*)&playersLeftBuf, sizeof(int), NULL);
-			}
+void UserLeave(int index, std::string ip)
+{
+	PlayerCount--;
+	closesocket(Connections[index]);
+	Connections[index] = INVALID_SOCKET;
+	/*strcpy(nicnames[index], "null");*/
+	/*ready[index] = false;
+	PlayerRole[index] = -1;
+	nlohmann::json json{};
+	nlohmann::json bools{};
+	bools = ready;
+	json = nicnames;
+	int msg_size = json.dump().size();
+	int bools_size = bools.dump().size();
+	for (int i = 0; i < size; i++) {
+		if (Connections[i] == INVALID_SOCKET) {
+			continue;
 		}
-		else
+		send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+
+		send(Connections[i], (char*)&msg_size, sizeof(int), NULL);
+		send(Connections[i], json.dump().c_str(), msg_size, NULL);
+
+		send(Connections[i], (char*)&bools_size, sizeof(int), NULL);
+		send(Connections[i], bools.dump().c_str(), bools_size, NULL);
+	}*/
+	std::cout << "Client disconnected:" << ip << std::endl;
+}
+void ClientHandler(int index, std::string ip) {
+
+	std::string password;
+
+	recv(Connections[index], (char*)&password, sizeof(password), NULL);
+
+	if (password != "4321")
+	{
+		char mes[] = "Access denied";
+		send(Connections[index], (char*)&mes, sizeof(mes), NULL);
+		UserLeave(index, ip);
+		return;
+	}
+	else {
+		char mes[] = "Access Good";
+		send(Connections[index], (char*)&mes, sizeof(mes), NULL);
+		Packet	packettype;
+		while (true)
 		{
-			::closesocket(Connections[index]);
-			Connections[index] = INVALID_SOCKET;
-			playersLeftBuf++;
-			for (int i = 0; i < clientIndex; i++) {
-				if (i == index || Connections[i] == INVALID_SOCKET) {
-					continue;
+
+			if (recv(Connections[index], (char*)&packettype, sizeof(Packet), NULL) > 0)
+			{
+				switch (packettype) {
+				case P_UserReadyChange:
+
+				default:
+					break;
 				}
-				send(Connections[i], (char*)&playersLeftBuf, sizeof(int), NULL);
+
 			}
-			std::cout << "Client disconnected:" << ip << std::endl;
-			return;
+			else {
+				UserLeave(index, ip);
+				return;
+			}
 		}
 	}
+
+	//Packet	packettype;
+	///*
+	//nlohmann::json json{};
+	//nlohmann::json bools{};
+	//bools = ready;
+	//json = nicnames;
+	//int msg_size = json.dump().size();
+	//int bools_size = bools.dump().size();
+	//for (int i = 0; i < size; i++) {
+	//	if (Connections[i] == INVALID_SOCKET) {
+	//		continue;
+	//	}
+	//	send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+
+	//	send(Connections[i], (char*)&msg_size, sizeof(int), NULL);
+	//	send(Connections[i], json.dump().c_str(), msg_size, NULL);
+
+	//	send(Connections[i], (char*)&bools_size, sizeof(int), NULL);
+	//	send(Connections[i], bools.dump().c_str(), bools_size, NULL);
+	//}*/
+
+	
 }
 
-void UDPReceiver() {
-	std::thread threads[gameClientCount];
+
+
+void UDPController() {
+	SOCKADDR_IN clientAddress; //Структура для хранения адресов интернет протоколов
+	int sizeOfAddress = sizeof(clientAddress);
+	int msg;
 	int receivedMsg;
-	char msg[] = "hello";
-	char recvBuf[UDP_BUF_SIZE];
+
 	while (true) {
 
-		receivedMsg = recvfrom(recvSocket, recvBuf, UDP_BUF_SIZE, 0, (SOCKADDR*)&clientAddr, &clientAddrSize);
+		receivedMsg = recvfrom(udpSocket, (char*)&msg, sizeof(int), 0, (SOCKADDR*)&clientAddress, &sizeOfAddress);
 		if (receivedMsg == SOCKET_ERROR) {
 			wprintf(L"recvfrom failed with error %d\n", WSAGetLastError());
 		}
-		// Отправка клиента в индивидуальный поток
 		else {
-			sendto(recvSocket, (char*)&playersLeftBuf, sizeof(int), 0, (SOCKADDR*)&clientAddr, clientAddrSize);
+			sendto(udpSocket, (char*)&PlayerCount, sizeof(int), 0, (SOCKADDR*)&clientAddress, sizeOfAddress);
 		}
 	}
 }
-
 int main()
 {
+	for (int i = 0; i < size; i++)
+	{
+		strcpy(nicnames[i], "null");
+	}
+
 	WSAData wsaData;
 	WORD DLLVersion = MAKEWORD(2, 1);
 	if (WSAStartup(DLLVersion, &wsaData) != 0) {
@@ -87,75 +149,79 @@ int main()
 		exit(1);
 	}
 
-	SOCKADDR_IN serverAddress; //Структура для хранения адресов интернет протоколов
-	int sizeOfAdrr = sizeof(serverAddress);
-	std::cout << "Enter port - default 1111:";
+	SOCKADDR_IN address; //Структура для хранения адресов интернет протоколов
+	int sizeOfAddress = sizeof(address);
+	//std::cout << "Enter port - default 1111:";
 	int port;
-	std::cin >> port;
-	if (port == 0 || port > 65535)
+	/*std::cin >> port;
+	if (port == 0 || port > 65535)*/
 		port = 1111;
-	serverAddress.sin_addr.s_addr = INADDR_ANY; //ip фдрес, указан localhost
-	serverAddress.sin_port = htons(port); //Порт для идентификации программы
-	serverAddress.sin_family = AF_INET; //Семейство интернет протоколов
+	address.sin_addr.s_addr = INADDR_ANY; //ip фдрес, указан localhost
+	address.sin_port = htons(port); //Порт для идентификации программы
+	address.sin_family = AF_INET; //Семейство интернет протоколов
 
-	// Принятие широковещательного пакета, соденинение с клиентом
-	// Создание сокета для принятие датаграмм
-	recvSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (recvSocket == INVALID_SOCKET) {
+	udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (udpSocket == INVALID_SOCKET) {
 		wprintf(L"socket failed with error %d\n", WSAGetLastError());
 		return 1;
 	}
-	int broadcast = 1;
 
-	int receivedMsg = bind(recvSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress));
+	int receivedMsg = bind(udpSocket, (SOCKADDR*)&address, sizeOfAddress);
 	if (receivedMsg != 0) {
 		wprintf(L"bind failed with error %d\n", WSAGetLastError());
 		return 1;
 	}
 
-	std::thread thread(UDPReceiver);
+	std::thread udpHandler(UDPController);
 
 	SOCKET serverListener = socket(AF_INET, SOCK_STREAM, NULL); //Сокет для прослушивания входящих соединений
-	bind(serverListener, (SOCKADDR*)&serverAddress, sizeof(serverAddress)); //Привязка сокету адреса
+	bind(serverListener, (SOCKADDR*)&address, sizeof(address)); //Привязка сокету адреса
+
+	std::cout << "Server started - port:" << port << std::endl;
 	listen(serverListener, SOMAXCONN); //Ожидание соединения с клиентом
 
-	std::cout << "Server started: \n";
+	SOCKET	newConnection;
+	std::thread threads[100];
 
-	// Ожидание датаграмм от клиентов
-	wprintf(L"Receiving datagrams...\n");
+	int msg_size;
 
-	SOCKET newConnection;
-	std::thread threads[gameClientCount];
-	char msg[] = "hello";
-	while (true) {
-		if (clientIndex <= 1) {
-			newConnection = accept(serverListener, (SOCKADDR*)&serverAddress, &sizeOfAdrr); //Сокет для удержания соединения с клиентом
-			if (newConnection == 0) //Проверка соединения
+	int position = 0;
+	int threadsCounter = 0;
+	while (true)
+	{
+		newConnection = accept(serverListener, (SOCKADDR*)&address, &sizeOfAddress); //Сокет для удержания соединения с клиентом
+
+
+ 		for (int i = 0; i < size; i++)
+		{
+			if (Connections[i] == INVALID_SOCKET || Connections[i] == 0)
 			{
-				std::cout << "Error, no connection: " << inet_ntoa(serverAddress.sin_addr) << std::endl;
+				position = i;
+				break;
 			}
-			else {
-				std::cout << "Client connected: " << inet_ntoa(serverAddress.sin_addr) << std::endl;
-				Connections[clientIndex] = newConnection;
-				threads[clientIndex] =
-					std::thread(ClientHandler, clientIndex, inet_ntoa(serverAddress.sin_addr));
-				clientIndex++;
-				clientIndexCounter++;
-			}
+			position = size;
 		}
-		else continue;
-	}
+		if (newConnection == 0 || position == size) //Проверка соединения
+		{
+			std::cout << "Error, no connection:" << inet_ntoa(address.sin_addr) << std::endl;
+		}
+		else {
 
-	// Закрытие сокета после окончания принятия датаграмм
-	wprintf(L"Finished receiving. Closing socket.\n");
-	receivedMsg = closesocket(recvSocket);
-	if (receivedMsg == SOCKET_ERROR) {
-		wprintf(L"closesocket failed with error %d\n", WSAGetLastError());
-		return 1;
+			std::cout << "Client connected:" << inet_ntoa(address.sin_addr)
+				<< " position:" << position + 1 << "/" << size << std::endl;
+			Connections[position] = newConnection;
+
+			PlayerCount++;
+			threads[threadsCounter] = std::thread(ClientHandler, position, inet_ntoa(address.sin_addr));
+			threadsCounter++;
+			position++;
+
+
+
+		}
 	}
-	// Очистка памяти и выход
-	wprintf(L"Exiting.\n");
 	WSACleanup();
+	system("pause");
 	return 0;
 }
 

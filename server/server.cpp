@@ -16,15 +16,8 @@ int PlayerRole[size];
 
 enum Packet
 {
-	P_UserListChange,
-	P_UserMakeLeader,
-	P_UserListGet,
-	P_ChatSend,
-	P_error,
-	P_UserReadyChange,
-	P_GameStart,
-	P_NextStage,
-	P_SelectChange
+	ChatSend,
+	PlayersChange
 };
 
 void UserLeave(int index, std::string ip)
@@ -59,7 +52,7 @@ void ClientHandler(int index, std::string ip) {
 
 	char password[5];
 
-	recv(Connections[index], (char*)&password, sizeof(5), NULL);
+	recv(Connections[index], (char*)&password,5, NULL);
 	password[4] = '\0';
 	std::string s = password;
 	if (s != "4321")
@@ -79,8 +72,9 @@ void ClientHandler(int index, std::string ip) {
 		if (recv(Connections[index], (char*)&packettype, sizeof(Packet), NULL) > 0)
 		{
 			switch (packettype) {
-			case P_UserReadyChange:
-
+			case ChatSend:
+				
+				break;
 			default:
 				std::cout << "Incorrect action:" << ip << "\n";
 				UserLeave(index, ip);

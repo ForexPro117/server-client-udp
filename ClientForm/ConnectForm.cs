@@ -1,11 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
-using System.Diagnostics;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Collections.Generic;
 
 namespace ClientForm
 {
@@ -13,7 +11,7 @@ namespace ClientForm
     {
         private string _ip;
         private int _port;
-        List<EndPoint> playerList = new List<EndPoint>();
+        List<EndPoint> serverList = new List<EndPoint>();
         public ConnectForm()
         {
             InitializeComponent();
@@ -30,7 +28,7 @@ namespace ClientForm
                 tempSocket.Connect(address);
                 return tempSocket;
             }
-            catch (SocketException e)
+            catch (SocketException)
             {
                 tempSocket.Close();
                 return null;
@@ -45,7 +43,7 @@ namespace ClientForm
             try
             {
                 Socket socket;
-                var adr = playerList[comboBox1.SelectedIndex];
+                var adr = serverList[comboBox1.SelectedIndex];
                 var task = Task.Run(() => ConnectSocket(adr));
 
                 if (task.Wait(TimeSpan.FromSeconds(5)))
@@ -59,9 +57,9 @@ namespace ClientForm
                 }
                 label2.Text = "Статус: Успех";
                 this.Hide();
-                Form2 waitingForm = new Form2(socket, nicname.Text);
-                waitingForm.Owner = this;
-                waitingForm.ShowDialog();
+                Form2 room = new Form2(socket, nicname.Text);
+                room.Owner = this;
+                room.ShowDialog();
                 this.Show();
                 socket.Close();
             }
@@ -79,7 +77,7 @@ namespace ClientForm
         {
             var comboBox = (ComboBox)sender;
             var text = comboBox.SelectedItem.ToString();
-            if (text.Contains("мест:0"))
+            if (text.Contains("8/8"))
             {
                 checkButton.Enabled = false;
                 return;
@@ -89,48 +87,60 @@ namespace ClientForm
 
         private async void searchButton_Click(object sender, EventArgs e)
         {
+            searchButton.Enabled = false;
             comboBox1.Items.Clear();
             label2.Text = "Статус: Поиск серверов";
             try
             {
-                searchButton.Enabled = false;
-
-                IPEndPoint ssender = new IPEndPoint(IPAddress.Any, 0);
-                EndPoint senderRemote = (EndPoint)ssender;
-                Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                s.EnableBroadcast = true;
-                byte[] msg = System.Text.Encoding.ASCII.GetBytes("This is a test\0");
-                byte[] playersSize = new byte[sizeof(int)];
-                // This call blocks.
-                s.SendTo(msg, 0, msg.Length, SocketFlags.None, new IPEndPoint(IPAddress.Parse("192.168.0.255"), 1111));
-                var sw = new Stopwatch();
-                var task = Task.Run(() =>
-                {
-
-                    while (true)
-                    {
-                        //msg-принять число доступных мест
-                        s.ReceiveFrom(playersSize, sizeof(int), SocketFlags.None, ref senderRemote);
-                        playerList.Add(senderRemote);
-                        this.Invoke(new Action(() => comboBox1.Items.Add(senderRemote + " мест:" + BitConverter.ToInt32(playersSize, 0).ToString())));
-                        this.Invoke(new Action(() => comboBox1.SelectedIndex = 0));
-                        this.Invoke(new Action(() => checkButton.Visible=true));
-                    }
-                    
-
-                });
-                //ОТМЕНИ ТАСКУ!!!
+                this._port = Int32.Parse(PortBox.Text);
+                await Task.Run(() => udpController());
             }
-            catch (TimeoutException)
+            catch (ArgumentException)
             {
-                label2.Text = "Статус: Timeout";
+                label2.Text = "Статус: Ошибка аргумента";
+                return;
             }
             finally
             {
                 searchButton.Enabled = true;
             }
+            label2.Text = "Статус: Поиск завершен";
         }
 
+        private void udpController()
+        {
 
+            IPEndPoint ssender = new IPEndPoint(IPAddress.Any, 0);
+            EndPoint senderRemote = (EndPoint)ssender;
+            Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            s.EnableBroadcast = true;
+            s.ReceiveTimeout = 2000;
+            byte[] msg = BitConverter.GetBytes(1);
+            serverList.Clear();
+            EndPoint address = new IPEndPoint(IPAddress.Broadcast, _port);
+            s.SendTo(msg, 0, sizeof(int), SocketFlags.None, address);
+
+            try
+            {
+                while (true)
+                {
+                    s.ReceiveFrom(msg, sizeof(int), SocketFlags.None, ref senderRemote);
+                    serverList.Add(senderRemote);
+                    this.Invoke(new Action(() => comboBox1.Items.Add(senderRemote + $" Игроков:{BitConverter.ToInt32(msg, 0)}/8")));
+                }
+
+            }
+            catch (SocketException)
+            {
+
+            }
+            finally
+            {
+
+                s.Close();
+            }
+
+
+        }
     }
 }

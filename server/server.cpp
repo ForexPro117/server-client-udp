@@ -57,40 +57,43 @@ void UserLeave(int index, std::string ip)
 }
 void ClientHandler(int index, std::string ip) {
 
-	std::string password;
+	char password[5];
 
-	recv(Connections[index], (char*)&password, sizeof(password), NULL);
-
-	if (password != "4321")
+	recv(Connections[index], (char*)&password, sizeof(5), NULL);
+	password[4] = '\0';
+	std::string s = password;
+	if (s != "4321")
 	{
-		char mes[] = "Access denied";
+		char mes[] = "Access denied - invalid password!";
+		std::cout << "Access denied - invalid password:" << ip<<"\n";
 		send(Connections[index], (char*)&mes, sizeof(mes), NULL);
 		UserLeave(index, ip);
 		return;
 	}
-	else {
-		char mes[] = "Access Good";
-		send(Connections[index], (char*)&mes, sizeof(mes), NULL);
-		Packet	packettype;
-		while (true)
+	Packet	packettype;
+
+	
+	while (true)
+	{
+
+		if (recv(Connections[index], (char*)&packettype, sizeof(Packet), NULL) > 0)
 		{
+			switch (packettype) {
+			case P_UserReadyChange:
 
-			if (recv(Connections[index], (char*)&packettype, sizeof(Packet), NULL) > 0)
-			{
-				switch (packettype) {
-				case P_UserReadyChange:
-
-				default:
-					break;
-				}
-
-			}
-			else {
+			default:
+				std::cout << "Incorrect action:" << ip << "\n";
 				UserLeave(index, ip);
 				return;
 			}
+
+		}
+		else {
+			UserLeave(index, ip);
+			return;
 		}
 	}
+
 
 	//Packet	packettype;
 	///*
@@ -113,7 +116,7 @@ void ClientHandler(int index, std::string ip) {
 	//	send(Connections[i], bools.dump().c_str(), bools_size, NULL);
 	//}*/
 
-	
+
 }
 
 
@@ -155,7 +158,7 @@ int main()
 	int port;
 	/*std::cin >> port;
 	if (port == 0 || port > 65535)*/
-		port = 1111;
+	port = 1111;
 	address.sin_addr.s_addr = INADDR_ANY; //ip фдрес, указан localhost
 	address.sin_port = htons(port); //Порт для идентификации программы
 	address.sin_family = AF_INET; //Семейство интернет протоколов
@@ -192,7 +195,7 @@ int main()
 		newConnection = accept(serverListener, (SOCKADDR*)&address, &sizeOfAddress); //Сокет для удержания соединения с клиентом
 
 
- 		for (int i = 0; i < size; i++)
+		for (int i = 0; i < size; i++)
 		{
 			if (Connections[i] == INVALID_SOCKET || Connections[i] == 0)
 			{

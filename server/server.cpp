@@ -60,20 +60,20 @@ void ClientHandler(int index, std::string ip) {
 	}
 }
 
-void UDPController() {
-	SOCKADDR_IN clientAddress; //Структура для хранения адресов интернет протоколов
-	int sizeOfAddress = sizeof(clientAddress);
-	int msg;
+void UDPReceiver() {
+	std::thread threads[gameClientCount];
 	int receivedMsg;
-
+	char msg[] = "hello";
+	char recvBuf[UDP_BUF_SIZE];
 	while (true) {
 
-		receivedMsg = recvfrom(udpSocket, (char*)&msg, sizeof(int), 0, (SOCKADDR*)&clientAddress, &sizeOfAddress);
+		receivedMsg = recvfrom(recvSocket, recvBuf, UDP_BUF_SIZE, 0, (SOCKADDR*)&clientAddr, &clientAddrSize);
 		if (receivedMsg == SOCKET_ERROR) {
 			wprintf(L"recvfrom failed with error %d\n", WSAGetLastError());
 		}
+		// Отправка клиента в индивидуальный поток
 		else {
-			sendto(udpSocket, (char*)&PlayerCount, sizeof(int), 0, (SOCKADDR*)&clientAddress, sizeOfAddress);
+			sendto(recvSocket, (char*)&playersLeftBuf, sizeof(int), 0, (SOCKADDR*)&clientAddr, clientAddrSize);
 		}
 	}
 }

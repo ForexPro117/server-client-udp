@@ -37,13 +37,13 @@ namespace ClientForm
 
         private void checkButton_Click(object sender, EventArgs e)
         {
-            this._port = 1111;
-
-            Int32.TryParse(PortBox.Text, out _port);
+           
             try
             {
                 Socket socket;
-                var adr = serverList[comboBox1.SelectedIndex];
+               // var adr = serverList[comboBox1.SelectedIndex];
+                //*************//
+               var adr = new IPEndPoint(IPAddress.Parse("192.168.0.40"),1111);
                 var task = Task.Run(() => ConnectSocket(adr));
 
                 if (task.Wait(TimeSpan.FromSeconds(5)))
@@ -56,6 +56,10 @@ namespace ClientForm
                     return;
                 }
                 label2.Text = "Статус: Успех";
+                serverList.Clear();
+                comboBox1.Items.Clear();
+                comboBox1.Text = "Список серверов";
+                checkButton.Enabled = false;
                 this.Hide();
                 Form2 room = new Form2(socket, nicname.Text);
                 room.Owner = this;
@@ -66,10 +70,11 @@ namespace ClientForm
             catch (TimeoutException)
             {
                 label2.Text = "Статус: Timeout";
+                checkButton.Enabled = true;
             }
             finally
             {
-                checkButton.Enabled = true;
+                
             }
         }
 
@@ -95,7 +100,7 @@ namespace ClientForm
                 this._port = Int32.Parse(PortBox.Text);
                 await Task.Run(() => udpController());
             }
-            catch (ArgumentException)
+            catch (FormatException)
             {
                 label2.Text = "Статус: Ошибка аргумента";
                 return;
@@ -141,6 +146,11 @@ namespace ClientForm
             }
 
 
+        }
+
+        private void ConnectForm_Load(object sender, EventArgs e)
+        {
+           checkButton_Click(sender, e);
         }
     }
 }

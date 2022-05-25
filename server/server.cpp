@@ -2,6 +2,7 @@
 #include <winsock2.h>
 #include <iostream>
 #include <thread>
+#include <map>
 #pragma comment(lib, "ws2_32.lib")
 
 #pragma warning(disable: 4996)
@@ -10,21 +11,28 @@ SOCKET Connections[size];
 SOCKET udpSocket;
 const int BUF_SIZE = 2048;
 int PlayerCount = 0;
-char nicnames[size][16];
-bool ready[size];
-int PlayerRole[size];
+
 
 enum Packet
 {
 	ChatSend,
-	PlayersChange
+	PlayersChange,
+	MakeAction,
 };
+enum Actions {
+	Rock,
+	Scissors,
+	Paper
+};
+
+std::map<int, Actions> actionMap;
 
 void UserLeave(int index, std::string ip)
 {
 	PlayerCount--;
 	closesocket(Connections[index]);
 	Connections[index] = INVALID_SOCKET;
+	actionMap.erase(index);
 	/*strcpy(nicnames[index], "null");*/
 	/*ready[index] = false;
 	PlayerRole[index] = -1;
@@ -34,18 +42,15 @@ void UserLeave(int index, std::string ip)
 	json = nicnames;
 	int msg_size = json.dump().size();
 	int bools_size = bools.dump().size();
+	*/
+	Packet	packettype= PlayersChange;
 	for (int i = 0; i < size; i++) {
-		if (Connections[i] == INVALID_SOCKET) {
+		if (Connections[i] == INVALID_SOCKET || Connections[i] == 0) {
 			continue;
 		}
 		send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
-
-		send(Connections[i], (char*)&msg_size, sizeof(int), NULL);
-		send(Connections[i], json.dump().c_str(), msg_size, NULL);
-
-		send(Connections[i], (char*)&bools_size, sizeof(int), NULL);
-		send(Connections[i], bools.dump().c_str(), bools_size, NULL);
-	}*/
+		send(Connections[i], (char*)&PlayerCount, sizeof(int), NULL);
+	}
 	std::cout << "Client disconnected:" << ip << std::endl;
 }
 void ClientHandler(int index, std::string ip) {
@@ -63,8 +68,17 @@ void ClientHandler(int index, std::string ip) {
 		UserLeave(index, ip);
 		return;
 	}
-	Packet	packettype;
+	Packet	packettype= PlayersChange;
 
+
+	for (int i = 0; i < size; i++) {
+		if (Connections[i] == INVALID_SOCKET || Connections[i] == 0) {
+			continue;
+		}
+		send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+
+		send(Connections[i], (char*)&PlayerCount, sizeof(int), NULL);
+	}
 	
 	while (true)
 	{
@@ -74,6 +88,12 @@ void ClientHandler(int index, std::string ip) {
 			switch (packettype) {
 			case ChatSend:
 				
+				break;
+
+			case MakeAction:
+				Actions action;
+				recv(Connections[index], (char*)&action, sizeof(Actions), NULL);
+				actionMap[index] = action;
 				break;
 			default:
 				std::cout << "Incorrect action:" << ip << "\n";
@@ -134,10 +154,6 @@ void UDPController() {
 }
 int main()
 {
-	for (int i = 0; i < size; i++)
-	{
-		strcpy(nicnames[i], "null");
-	}
 
 	WSAData wsaData;
 	WORD DLLVersion = MAKEWORD(2, 1);

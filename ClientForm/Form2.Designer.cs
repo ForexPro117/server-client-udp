@@ -126,6 +126,7 @@
             // 
             this.PaperBtn.BackgroundImage = global::ClientForm.Properties.Resources.sciss;
             this.PaperBtn.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
+            this.PaperBtn.Cursor = System.Windows.Forms.Cursors.Hand;
             this.PaperBtn.FlatAppearance.BorderSize = 0;
             this.PaperBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.PaperBtn.ForeColor = System.Drawing.SystemColors.Control;
@@ -134,23 +135,29 @@
             this.PaperBtn.Size = new System.Drawing.Size(73, 71);
             this.PaperBtn.TabIndex = 13;
             this.PaperBtn.UseVisualStyleBackColor = false;
+            this.PaperBtn.Click += new System.EventHandler(this.Image_Click);
             // 
             // ScissorsBtn
             // 
+            this.ScissorsBtn.BackColor = System.Drawing.SystemColors.ActiveBorder;
             this.ScissorsBtn.BackgroundImage = global::ClientForm.Properties.Resources.paper;
             this.ScissorsBtn.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
+            this.ScissorsBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.ScissorsBtn.FlatAppearance.BorderSize = 0;
             this.ScissorsBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.ScissorsBtn.ForeColor = System.Drawing.SystemColors.Control;
+            this.ScissorsBtn.ForeColor = System.Drawing.SystemColors.ActiveCaption;
             this.ScissorsBtn.Location = new System.Drawing.Point(132, 388);
             this.ScissorsBtn.Name = "ScissorsBtn";
             this.ScissorsBtn.Size = new System.Drawing.Size(73, 71);
             this.ScissorsBtn.TabIndex = 12;
             this.ScissorsBtn.UseVisualStyleBackColor = false;
+            this.ScissorsBtn.Click += new System.EventHandler(this.Image_Click);
             // 
             // RockBtn
             // 
             this.RockBtn.BackgroundImage = global::ClientForm.Properties.Resources.rock;
             this.RockBtn.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
+            this.RockBtn.Cursor = System.Windows.Forms.Cursors.Hand;
             this.RockBtn.FlatAppearance.BorderSize = 0;
             this.RockBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.RockBtn.ForeColor = System.Drawing.SystemColors.Control;
@@ -159,6 +166,7 @@
             this.RockBtn.Size = new System.Drawing.Size(74, 71);
             this.RockBtn.TabIndex = 5;
             this.RockBtn.UseVisualStyleBackColor = false;
+            this.RockBtn.Click += new System.EventHandler(this.Image_Click);
             // 
             // Form2
             // 

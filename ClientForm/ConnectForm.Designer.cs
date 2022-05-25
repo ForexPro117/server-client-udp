@@ -136,6 +136,7 @@
             this.Name = "ConnectForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Вход";
+            this.Load += new System.EventHandler(this.ConnectForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 

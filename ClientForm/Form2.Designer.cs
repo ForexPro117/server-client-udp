@@ -203,6 +203,8 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.button1);
             this.Margin = new System.Windows.Forms.Padding(2);
+            this.MaximumSize = new System.Drawing.Size(361, 504);
+            this.MinimumSize = new System.Drawing.Size(361, 504);
             this.Name = "Form2";
             this.Text = "Игра КНБ";
             this.Load += new System.EventHandler(this.Form2_Load);

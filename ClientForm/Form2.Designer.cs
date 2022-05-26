@@ -39,13 +39,14 @@
             this.PaperBtn = new System.Windows.Forms.Button();
             this.ScissorsBtn = new System.Windows.Forms.Button();
             this.RockBtn = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // button1
             // 
             this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.8F);
             this.button1.Location = new System.Drawing.Point(184, 76);
-            this.button1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.button1.Margin = new System.Windows.Forms.Padding(2);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(123, 29);
             this.button1.TabIndex = 0;
@@ -124,9 +125,11 @@
             // 
             // PaperBtn
             // 
+            this.PaperBtn.BackColor = System.Drawing.Color.Gray;
             this.PaperBtn.BackgroundImage = global::ClientForm.Properties.Resources.sciss;
             this.PaperBtn.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.PaperBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.PaperBtn.Enabled = false;
             this.PaperBtn.FlatAppearance.BorderSize = 0;
             this.PaperBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.PaperBtn.ForeColor = System.Drawing.SystemColors.Control;
@@ -139,10 +142,11 @@
             // 
             // ScissorsBtn
             // 
-            this.ScissorsBtn.BackColor = System.Drawing.SystemColors.ActiveBorder;
+            this.ScissorsBtn.BackColor = System.Drawing.Color.Gray;
             this.ScissorsBtn.BackgroundImage = global::ClientForm.Properties.Resources.paper;
             this.ScissorsBtn.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.ScissorsBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.ScissorsBtn.Enabled = false;
             this.ScissorsBtn.FlatAppearance.BorderSize = 0;
             this.ScissorsBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.ScissorsBtn.ForeColor = System.Drawing.SystemColors.ActiveCaption;
@@ -155,9 +159,11 @@
             // 
             // RockBtn
             // 
+            this.RockBtn.BackColor = System.Drawing.Color.Gray;
             this.RockBtn.BackgroundImage = global::ClientForm.Properties.Resources.rock;
             this.RockBtn.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.RockBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.RockBtn.Enabled = false;
             this.RockBtn.FlatAppearance.BorderSize = 0;
             this.RockBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.RockBtn.ForeColor = System.Drawing.SystemColors.Control;
@@ -168,11 +174,23 @@
             this.RockBtn.UseVisualStyleBackColor = false;
             this.RockBtn.Click += new System.EventHandler(this.Image_Click);
             // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.8F);
+            this.label2.Location = new System.Drawing.Point(26, 113);
+            this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(138, 18);
+            this.label2.TabIndex = 14;
+            this.label2.Text = "Игроков сходило: ";
+            // 
             // Form2
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(345, 465);
+            this.Controls.Add(this.label2);
             this.Controls.Add(this.PaperBtn);
             this.Controls.Add(this.ScissorsBtn);
             this.Controls.Add(this.RockBtn);
@@ -184,7 +202,7 @@
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.button1);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Form2";
             this.Text = "Игра КНБ";
             this.Load += new System.EventHandler(this.Form2_Load);
@@ -206,5 +224,6 @@
         private System.Windows.Forms.Label DrawLabel;
         private System.Windows.Forms.Button ScissorsBtn;
         private System.Windows.Forms.Button PaperBtn;
+        private System.Windows.Forms.Label label2;
     }
 }

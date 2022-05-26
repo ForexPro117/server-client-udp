@@ -18,68 +18,64 @@ enum Packet
 	ChatSend,
 	PlayersChange,
 	MakeAction,
+	SendResult
 };
 enum Actions {
 	Rock,
 	Scissors,
 	Paper
 };
-
+enum Result {
+	Win,
+	Lose,
+	Draw
+};
 std::map<int, Actions> actionMap;
+std::map<int, Result> resultMap;
 
+void SendIntToPlayers(Packet packettype, int number)
+{
+	for (int i = 0; i < size; i++) {
+		if (Connections[i] == INVALID_SOCKET || Connections[i] == 0) {
+			continue;
+		}
+		send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+		send(Connections[i], (char*)&number, sizeof(int), NULL);
+	}
+}
 void UserLeave(int index, std::string ip)
 {
 	PlayerCount--;
 	closesocket(Connections[index]);
 	Connections[index] = INVALID_SOCKET;
 	actionMap.erase(index);
-	/*strcpy(nicnames[index], "null");*/
-	/*ready[index] = false;
-	PlayerRole[index] = -1;
-	nlohmann::json json{};
-	nlohmann::json bools{};
-	bools = ready;
-	json = nicnames;
-	int msg_size = json.dump().size();
-	int bools_size = bools.dump().size();
-	*/
-	Packet	packettype= PlayersChange;
-	for (int i = 0; i < size; i++) {
-		if (Connections[i] == INVALID_SOCKET || Connections[i] == 0) {
-			continue;
-		}
-		send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
-		send(Connections[i], (char*)&PlayerCount, sizeof(int), NULL);
-	}
+	SendIntToPlayers(PlayersChange, PlayerCount);
+	SendIntToPlayers(MakeAction, actionMap.size());
 	std::cout << "Client disconnected:" << ip << std::endl;
 }
+
+
+
+
 void ClientHandler(int index, std::string ip) {
 
 	char password[5];
 
-	recv(Connections[index], (char*)&password,5, NULL);
+	recv(Connections[index], (char*)&password, 5, NULL);
 	password[4] = '\0';
 	std::string s = password;
 	if (s != "4321")
 	{
 		char mes[] = "Access denied - invalid password!";
-		std::cout << "Access denied - invalid password:" << ip<<"\n";
+		std::cout << "Access denied - invalid password:" << ip << "\n";
 		send(Connections[index], (char*)&mes, sizeof(mes), NULL);
 		UserLeave(index, ip);
 		return;
 	}
-	Packet	packettype= PlayersChange;
+	Packet	packettype = PlayersChange;
+	SendIntToPlayers(packettype, PlayerCount);
+	SendIntToPlayers(MakeAction, actionMap.size());
 
-
-	for (int i = 0; i < size; i++) {
-		if (Connections[i] == INVALID_SOCKET || Connections[i] == 0) {
-			continue;
-		}
-		send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
-
-		send(Connections[i], (char*)&PlayerCount, sizeof(int), NULL);
-	}
-	
 	while (true)
 	{
 
@@ -87,13 +83,80 @@ void ClientHandler(int index, std::string ip) {
 		{
 			switch (packettype) {
 			case ChatSend:
-				
+
 				break;
 
 			case MakeAction:
 				Actions action;
 				recv(Connections[index], (char*)&action, sizeof(Actions), NULL);
 				actionMap[index] = action;
+				if (actionMap.size() > 1 && actionMap.size() == PlayerCount)
+				{
+					int rock=0, scissors=0, paper=0;
+
+					for (int i = 0; i < size; i++) {
+						if (Connections[i] == INVALID_SOCKET || Connections[i] == 0) {
+							continue;
+						}
+						switch (actionMap[i])
+						{
+						case Actions::Rock:
+							rock++;
+							break;
+						case Actions::Scissors:
+							scissors++;
+							break;
+						case Actions::Paper:
+							paper++;
+							break;
+						}
+					}
+					for (int i = 0; i < size; i++) {
+						if (Connections[i] == INVALID_SOCKET || Connections[i] == 0) {
+							continue;
+						}
+
+						
+						switch (actionMap[i])//тут проверяю победил или нет
+						{
+						case Actions::Rock:
+							if (scissors > 0 && paper > 0)
+								resultMap[i] = Result::Draw;
+							else if (scissors > 0 && paper == 0)
+								resultMap[i] = Result::Win;
+							else resultMap[i] = Result::Lose;
+							break;
+						case Actions::Scissors:
+							if (rock > 0 && paper > 0)
+								resultMap[i] = Result::Draw;
+							else if (paper > 0 && rock == 0)
+								resultMap[i] = Result::Win;
+							else resultMap[i] = Result::Lose;
+
+							break;
+						case Actions::Paper:
+							if (scissors > 0 && rock > 0)
+								resultMap[i] = Result::Draw;
+							else if (rock > 0 && scissors == 0)
+								resultMap[i] = Result::Win;
+							else resultMap[i] = Result::Lose;
+
+							break;
+						}
+					}
+					packettype = SendResult;
+					for (int i = 0; i < size; i++) {
+						if (Connections[i] == INVALID_SOCKET || Connections[i] == 0) {
+							continue;
+						}
+						send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
+						send(Connections[i], (char*)&resultMap[i], sizeof(Result), NULL);
+					}
+
+					resultMap.clear();
+					actionMap.clear();
+				}
+				SendIntToPlayers(MakeAction, actionMap.size());
 				break;
 			default:
 				std::cout << "Incorrect action:" << ip << "\n";
@@ -107,29 +170,6 @@ void ClientHandler(int index, std::string ip) {
 			return;
 		}
 	}
-
-
-	//Packet	packettype;
-	///*
-	//nlohmann::json json{};
-	//nlohmann::json bools{};
-	//bools = ready;
-	//json = nicnames;
-	//int msg_size = json.dump().size();
-	//int bools_size = bools.dump().size();
-	//for (int i = 0; i < size; i++) {
-	//	if (Connections[i] == INVALID_SOCKET) {
-	//		continue;
-	//	}
-	//	send(Connections[i], (char*)&packettype, sizeof(Packet), NULL);
-
-	//	send(Connections[i], (char*)&msg_size, sizeof(int), NULL);
-	//	send(Connections[i], json.dump().c_str(), msg_size, NULL);
-
-	//	send(Connections[i], (char*)&bools_size, sizeof(int), NULL);
-	//	send(Connections[i], bools.dump().c_str(), bools_size, NULL);
-	//}*/
-
 
 }
 

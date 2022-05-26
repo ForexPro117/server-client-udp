@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ namespace ClientForm
         ChatSend,
         PlayersChange,
         MakeAction,
+        SendResult,
         Error
     };
     enum Actions
@@ -19,14 +21,20 @@ namespace ClientForm
         Scissors,
         Paper
     };
+    enum Result
+    {
+        Win,
+        Lose,
+        Draw
+    };
     public partial class Form2 : Form
     {
         private static Socket _socket;
         private string Nickname;
-        int wins = 0;
+        int win = 0;
         int lose = 0;
         int draw = 0;
-
+        int playersCount;
         public Form2(Socket socket, string name)
         {
             _socket = socket;
@@ -93,11 +101,63 @@ namespace ClientForm
                     case Packet.ChatSend:
 
                         break;
+                    case Packet.SendResult:
+                        await Task.Run(() => _socket.Receive(buffer, sizeof(int), 0));
+                        Result result = (Result)BitConverter.ToInt32(buffer, 0);
+                        switch (result)
+                        {
+                            case Result.Win:
+                                win++;
+                                richTextBox1.Text += "\nВы победили!";
+                                break;
+                            case Result.Lose:
+                                lose++;
+                                richTextBox1.Text += "\nВы проиграли!";
+                                break;
+                            case Result.Draw:
+                                draw++;
+                                richTextBox1.Text += "\nУ вас ничья!";
+                                break;
+                        }
+                        WinLabel.Text = $"Побед:{win}";
+                        LoseLabel.Text = $"Побед:{lose}";
+                        DrawLabel.Text = $"Побед:{draw}";
+                        RockBtn.BackColor = Color.Transparent;
+                        RockBtn.Enabled = true;
+                        ScissorsBtn.BackColor = Color.Transparent;
+                        ScissorsBtn.Enabled = true;
+                        PaperBtn.BackColor = Color.Transparent;
+                        PaperBtn.Enabled = true;
+                        break;
+                    case Packet.MakeAction:
+                        await Task.Run(() => _socket.Receive(buffer, sizeof(int), 0));
+                        label2.Text = $"Игроков сходило:{BitConverter.ToInt32(buffer, 0)}" +
+                            $" из {playersCount}";
+                        break;
                     case Packet.PlayersChange:
                         try
                         {
                             _socket.Receive(buffer, sizeof(int), 0);
-                            label3.Text = $"Игроков онлайн:{BitConverter.ToInt32(buffer, 0)}";
+                            playersCount = BitConverter.ToInt32(buffer, 0);
+                            label3.Text = $"Игроков онлайн:{playersCount}";
+                            if (playersCount > 1)
+                            {
+                                RockBtn.BackColor = Color.Transparent;
+                                RockBtn.Enabled = true;
+                                ScissorsBtn.BackColor = Color.Transparent;
+                                ScissorsBtn.Enabled = true;
+                                PaperBtn.BackColor = Color.Transparent;
+                                PaperBtn.Enabled = true;
+                            }
+                            else
+                            {
+                                RockBtn.BackColor = Color.Gray;
+                                RockBtn.Enabled = false;
+                                ScissorsBtn.BackColor = Color.Gray;
+                                ScissorsBtn.Enabled = false;
+                                PaperBtn.BackColor = Color.Gray;
+                                PaperBtn.Enabled = false;
+                            }
                         }
                         catch (ObjectDisposedException)
                         {
@@ -127,6 +187,11 @@ namespace ClientForm
         {
             var btn = (Button)sender;
             var name = btn.Name;
+            btn.BackColor = Color.Gray;
+            RockBtn.Enabled = false;
+            ScissorsBtn.Enabled = false;
+            PaperBtn.Enabled = false;
+
             _socket.Send(BitConverter.GetBytes((int)Packet.MakeAction), sizeof(Packet), 0);
             switch (name)
             {

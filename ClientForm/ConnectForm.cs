@@ -37,13 +37,11 @@ namespace ClientForm
 
         private void checkButton_Click(object sender, EventArgs e)
         {
-           
+
             try
             {
                 Socket socket;
-               // var adr = serverList[comboBox1.SelectedIndex];
-                //*************//
-               var adr = new IPEndPoint(IPAddress.Parse("192.168.0.40"),1111);
+                var adr = serverList[comboBox1.SelectedIndex];
                 var task = Task.Run(() => ConnectSocket(adr));
 
                 if (task.Wait(TimeSpan.FromSeconds(5)))
@@ -74,7 +72,7 @@ namespace ClientForm
             }
             finally
             {
-                
+
             }
         }
 
@@ -150,7 +148,6 @@ namespace ClientForm
 
         private void ConnectForm_Load(object sender, EventArgs e)
         {
-           checkButton_Click(sender, e);
         }
     }
 }

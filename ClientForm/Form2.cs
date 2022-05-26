@@ -120,8 +120,8 @@ namespace ClientForm
                                 break;
                         }
                         WinLabel.Text = $"Побед:{win}";
-                        LoseLabel.Text = $"Побед:{lose}";
-                        DrawLabel.Text = $"Побед:{draw}";
+                        LoseLabel.Text = $"Поражений:{lose}";
+                        DrawLabel.Text = $"Ничьих:{draw}";
                         RockBtn.BackColor = Color.Transparent;
                         RockBtn.Enabled = true;
                         ScissorsBtn.BackColor = Color.Transparent;
@@ -138,6 +138,7 @@ namespace ClientForm
                         try
                         {
                             _socket.Receive(buffer, sizeof(int), 0);
+                            var count = playersCount;
                             playersCount = BitConverter.ToInt32(buffer, 0);
                             label3.Text = $"Игроков онлайн:{playersCount}";
                             if (playersCount > 1)
@@ -158,6 +159,9 @@ namespace ClientForm
                                 PaperBtn.BackColor = Color.Gray;
                                 PaperBtn.Enabled = false;
                             }
+                            if (count > playersCount)
+                                richTextBox1.Text = "Игрок покинул игру!";
+                            else richTextBox1.Text = "Игрок присоединился к игре!";
                         }
                         catch (ObjectDisposedException)
                         {

@@ -48,7 +48,7 @@ void UserLeave(int index, std::string ip)
 	PlayerCount--;
 	closesocket(Connections[index]);
 	Connections[index] = INVALID_SOCKET;
-	actionMap.erase(index);
+	actionMap.clear();
 	SendIntToPlayers(PlayersChange, PlayerCount);
 	SendIntToPlayers(MakeAction, actionMap.size());
 	std::cout << "Client disconnected:" << ip << std::endl;
@@ -120,14 +120,14 @@ void ClientHandler(int index, std::string ip) {
 						switch (actionMap[i])//тут проверяю победил или нет
 						{
 						case Actions::Rock:
-							if (scissors > 0 && paper > 0)
+							if ((scissors > 0 && paper > 0)||(scissors==0&&paper==0))
 								resultMap[i] = Result::Draw;
 							else if (scissors > 0 && paper == 0)
 								resultMap[i] = Result::Win;
 							else resultMap[i] = Result::Lose;
 							break;
 						case Actions::Scissors:
-							if (rock > 0 && paper > 0)
+							if ((rock > 0 && paper > 0) || (rock == 0 && paper == 0))
 								resultMap[i] = Result::Draw;
 							else if (paper > 0 && rock == 0)
 								resultMap[i] = Result::Win;
@@ -135,7 +135,7 @@ void ClientHandler(int index, std::string ip) {
 
 							break;
 						case Actions::Paper:
-							if (scissors > 0 && rock > 0)
+							if ((scissors > 0 && rock > 0) || (scissors == 0 && rock == 0))
 								resultMap[i] = Result::Draw;
 							else if (rock > 0 && scissors == 0)
 								resultMap[i] = Result::Win;
